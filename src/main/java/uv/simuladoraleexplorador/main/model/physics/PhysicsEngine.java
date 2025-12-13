@@ -157,4 +157,16 @@ public class PhysicsEngine {
             body.activate();
         }
     }
+    public void removeBody(RigidBody body) {
+        if (body != null) {
+            // 1. Quitar del mundo físico (JBullet)
+            dynamicsWorld.removeRigidBody(body);
+
+            // 2. Quitar del mapa de sincronización
+            physicsToGraphicsMap.remove(body);
+
+            // 3. Liberar memoria (opcional pero recomendado)
+            body.destroy();
+        }
+    }
 }

@@ -17,6 +17,7 @@ public class RobotManager {
     private final Group worldGroup;
     private final PhysicsEngine physics;
     private final World3D worldRef; // Necesario para el Gizmo
+    private com.bulletphysics.dynamics.RigidBody lastBody;
 
     public RobotManager(Group worldGroup, PhysicsEngine physics, World3D worldRef) {
         this.worldGroup = worldGroup;
@@ -56,20 +57,27 @@ public class RobotManager {
         worldGroup.getChildren().add(robotActor);
 
         // 6. Añadir a Física y guardar el BODY en una variable
-        com.bulletphysics.dynamics.RigidBody body = physics.addBoxBody(robotActor, 10.0f, realWidth, realHeight, realDepth);
 
-        // 7. Crear Gizmo y guardarlo
+        lastBody = physics.addBoxBody(robotActor, 10.0f, realWidth, realHeight, realDepth);
+
+        // 7. Gizmo
         lastGizmo = new TransformGizmo(robotActor, worldRef);
         worldGroup.getChildren().add(lastGizmo);
 
-        // 8. RETORNAR EL BODY (Esto es lo que World3D está esperando)
-        return body;
+        return lastBody;
     }
 
     private void cleanOldRobot() {
-        // Mantenemos index 0 (suelo)
+        // A. Limpiar Gráficos (Esto ya lo tenías)
         while (worldGroup.getChildren().size() > 1) {
             worldGroup.getChildren().remove(1);
+        }
+
+        // B. LIMPIEZA FÍSICA (ESTO ES LO NUEVO)
+        if (lastBody != null) {
+            physics.removeBody(lastBody);
+            lastBody = null; // Reiniciamos la variable
+            System.out.println(">> Robot Fantasma eliminado de la memoria física.");
         }
     }
 
