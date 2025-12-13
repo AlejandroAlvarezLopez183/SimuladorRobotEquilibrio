@@ -24,8 +24,6 @@ import javafx.scene.Node;
 public class PhysicsEngine {
 
     private DiscreteDynamicsWorld dynamicsWorld;
-
-    // Diccionario para saber qué Gráfico corresponde a qué Cuerpo Físico
     private final Map<RigidBody, Node> physicsToGraphicsMap = new HashMap<>();
 
     public PhysicsEngine() {
@@ -33,18 +31,18 @@ public class PhysicsEngine {
     }
 
     private void initPhysics() {
+        // Configuración JBullet estándar
         DefaultCollisionConfiguration collisionConfiguration = new DefaultCollisionConfiguration();
         CollisionDispatcher dispatcher = new CollisionDispatcher(collisionConfiguration);
         DbvtBroadphase broadphase = new DbvtBroadphase();
         SequentialImpulseConstraintSolver solver = new SequentialImpulseConstraintSolver();
 
         dynamicsWorld = new DiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
-
-        // 1. GRAVEDAD: 9.81 positivo en Y
         dynamicsWorld.setGravity(new Vector3f(0, 9.81f, 0));
 
-        // 2. SUELO
-        createGround();
+        // USAMOS LA FÁBRICA NUEVA:
+        RigidBody groundBody = RigidBodyFactory.createGround();
+        dynamicsWorld.addRigidBody(groundBody);
     }
 
     private void createGround() {
@@ -71,34 +69,11 @@ public class PhysicsEngine {
     }
 
     public RigidBody addBoxBody(Node graphicsNode, float mass, float width, float height, float depth) {
-        CollisionShape shape = new BoxShape(new Vector3f(width / 2, height / 2, depth / 2));
-        shape.setMargin(0.001f);
-        Vector3f localInertia = new Vector3f(0, 0, 0);
-        if (mass > 0) {
-            shape.calculateLocalInertia(mass, localInertia);
-        }
-
-        Transform startTransform = new Transform();
-        startTransform.setIdentity();
-        startTransform.origin.set(
-                (float) graphicsNode.getTranslateX(),
-                (float) graphicsNode.getTranslateY(),
-                (float) graphicsNode.getTranslateZ()
-        );
-
-        DefaultMotionState myMotionState = new DefaultMotionState(startTransform);
-        RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(mass, myMotionState, shape, localInertia);
-        RigidBody body = new RigidBody(rbInfo);
-
-        body.setRestitution(0.3f);
-        body.setFriction(0.8f);
-        body.setDamping(0.0f, 0.0f);
+        // USAMOS LA FÁBRICA NUEVA:
+        RigidBody body = RigidBodyFactory.createBox(graphicsNode, mass, width, height, depth);
 
         dynamicsWorld.addRigidBody(body);
         physicsToGraphicsMap.put(body, graphicsNode);
-
-        body.activate();
-
         return body;
     }
 
