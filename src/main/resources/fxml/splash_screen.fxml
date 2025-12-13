@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox alignment="CENTER" prefHeight="300.0" prefWidth="500.0" spacing="20.0"
+      style="-fx-background-color: #1e1e1e;"
+      xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="uv.simuladoraleexplorador.main.ui.SplashController">
+
+    <Label text="ROBOT SIMULATOR UV" textFill="WHITE">
+        <font>
+            <Font name="System Bold" size="24.0" />
+        </font>
+    </Label>
+
+    <Label fx:id="lblStatus" text="Inicializando sistema..." textFill="#aaaaaa">
+        <font>
+            <Font size="14.0" />
+        </font>
+    </Label>
+
+    <ProgressBar fx:id="progressBar" prefWidth="400.0" progress="0.0" />
+
+</VBox>

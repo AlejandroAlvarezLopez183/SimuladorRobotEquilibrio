@@ -1,0 +1,39 @@
+/* Base de la aplicación */
+.root {
+    -fx-base: #202020;
+    -fx-background-color: #202020;
+    -fx-accent: #4a90e2; /* Un azul bonito para selecciones */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* La barra de menú superior */
+.menu-bar {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #111111;
+    -fx-border-width: 0 0 1 0;
+}
+
+.menu-item:hover {
+    -fx-background-color: #3e3e42;
+}
+
+/* Botones de la barra de herramientas */
+.button {
+    -fx-background-color: #333333;
+    -fx-text-fill: #e0e0e0;
+    -fx-background-radius: 4;
+}
+
+.button:hover {
+    -fx-background-color: #454545;
+}
+
+.button:pressed {
+    -fx-background-color: #1e1e1e;
+}
+
+/* El área de trabajo */
+.workspace-background {
+    -fx-background-color: #181818;
+}
