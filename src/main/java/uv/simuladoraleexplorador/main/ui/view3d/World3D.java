@@ -163,4 +163,7 @@ public class World3D {
         planeGroup.getChildren().add(base);
         return planeGroup;
     }
+    public RobotManager getRobotManager() {
+        return robotManager;
+    }
 }

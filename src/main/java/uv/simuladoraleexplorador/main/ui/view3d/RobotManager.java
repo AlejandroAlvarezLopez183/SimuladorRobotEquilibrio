@@ -91,4 +91,41 @@ public class RobotManager {
     public TransformGizmo getLastGizmo() {
         return lastGizmo;
     }
+    public enum ShapeType {
+        BOX, SPHERE, CYLINDER
+    }
+
+    public com.bulletphysics.dynamics.RigidBody spawnPrimitive(Group model, ShapeType type, double sizeDim1, double sizeDim2) {
+        cleanOldRobot();
+
+        // Wrapper (Actor)
+        Group actor = new Group();
+        actor.getChildren().add(model);
+
+        // Posicionar alto
+        actor.setTranslateY(-50 - sizeDim1);
+        worldGroup.getChildren().add(actor);
+
+        // Física según el tipo
+        float mass = 5.0f;
+        switch (type) {
+            case SPHERE:
+                lastBody = physics.addSphereBody(actor, mass, (float)sizeDim1);
+                break;
+            case CYLINDER:
+                lastBody = physics.addCylinderBody(actor, mass, (float)sizeDim1, (float)sizeDim2);
+                break;
+            case BOX:
+            default:
+                // Para el cubo/rampa usaremos caja por simplicidad ahora
+                lastBody = physics.addBoxBody(actor, mass, (float)sizeDim1, (float)sizeDim1, (float)sizeDim1);
+                break;
+        }
+
+        // Gizmo
+        lastGizmo = new TransformGizmo(actor, worldRef);
+        worldGroup.getChildren().add(lastGizmo);
+
+        return lastBody;
+    }
 }

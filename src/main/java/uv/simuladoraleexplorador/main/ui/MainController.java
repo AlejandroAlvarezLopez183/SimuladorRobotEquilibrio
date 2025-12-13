@@ -14,6 +14,7 @@ import javafx.scene.transform.Rotate;
 
 // Imports de Tu Proyecto
 import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
+import uv.simuladoraleexplorador.main.ui.view3d.ObjectLibraryUI;
 import uv.simuladoraleexplorador.main.ui.view3d.World3D;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
 
@@ -28,7 +29,7 @@ public class MainController {
     @FXML private StackPane contentPane;
     @FXML private Button btn2D;
     @FXML private Button btn3D;
-
+    @FXML private javafx.scene.layout.VBox inspectorContainer;
     // Controles del Inspector
     @FXML private TextField txtMasa;
     @FXML private Slider sliderDrag;
@@ -48,6 +49,8 @@ public class MainController {
         initView2D();
         initView3D();
 
+        ObjectLibraryUI libraryUI = new ObjectLibraryUI(world3D.getRobotManager());
+        inspectorContainer.getChildren().add(0, libraryUI.getView());
         // Listener para actualizar la resistencia del aire en tiempo real
         sliderDrag.valueProperty().addListener((obs, oldVal, newVal) -> {
             handleUpdatePhysics();

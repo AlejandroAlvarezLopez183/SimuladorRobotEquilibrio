@@ -138,4 +138,17 @@ public class PhysicsEngine {
         body.updateInertiaTensor(); // Recalcular matemáticas internas
         body.activate();
     }
+    public RigidBody addSphereBody(Node graphicsNode, float mass, float radius) {
+        RigidBody body = RigidBodyFactory.createSphere(graphicsNode, mass, radius);
+        dynamicsWorld.addRigidBody(body);
+        physicsToGraphicsMap.put(body, graphicsNode);
+        return body;
+    }
+
+    public RigidBody addCylinderBody(Node graphicsNode, float mass, float radius, float height) {
+        RigidBody body = RigidBodyFactory.createCylinder(graphicsNode, mass, radius, height);
+        dynamicsWorld.addRigidBody(body);
+        physicsToGraphicsMap.put(body, graphicsNode);
+        return body;
+    }
 }

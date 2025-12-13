@@ -65,7 +65,7 @@
     </center>
 
     <right>
-        <VBox prefWidth="280.0" spacing="10.0" style="-fx-background-color: #252525; -fx-border-color: #151515; -fx-border-width: 0 0 0 1;" BorderPane.alignment="CENTER">
+        <VBox fx:id="inspectorContainer" prefWidth="280.0" spacing="10.0" style="-fx-background-color: #252525; -fx-border-color: #151515; -fx-border-width: 0 0 0 1;" BorderPane.alignment="CENTER">
             <children>
                 <Label style="-fx-padding: 10; -fx-font-weight: bold; -fx-text-fill: #e0e0e0;" text="INSPECTOR DE OBJETO" />
 
