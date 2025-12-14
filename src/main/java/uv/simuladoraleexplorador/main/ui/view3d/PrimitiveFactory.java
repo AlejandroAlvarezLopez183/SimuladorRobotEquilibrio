@@ -32,42 +32,46 @@ public class PrimitiveFactory {
     }
 
     public static Group createRamp(double size) {
-        // Crear una cuña (Wedge) usando TriangleMesh
         TriangleMesh mesh = new TriangleMesh();
 
-        // Vértices de una rampa simple
-        float s = (float) size;
+        // Usamos la mitad del tamaño para centrarlo en el origen
+        float hs = (float) size / 2.0f;
+
+        // Vértices Centrados: La base está en Y = hs (abajo), la punta en Y = -hs (arriba)
         mesh.getPoints().addAll(
-                0, 0, 0,    // 0: Front-Bottom-Left
-                s, 0, 0,    // 1: Front-Bottom-Right
-                0, -s, 0,   // 2: Front-Top-Left (La altura)
-                0, 0, s,    // 3: Back-Bottom-Left
-                s, 0, s,    // 4: Back-Bottom-Right
-                0, -s, s    // 5: Back-Top-Left
+                // Base (4 esquinas en Y positivo)
+                -hs, hs, -hs,   // 0: Front-Left-Bottom
+                hs, hs, -hs,   // 1: Front-Right-Bottom
+                -hs, hs,  hs,   // 2: Back-Left-Bottom
+                hs, hs,  hs,   // 3: Back-Right-Bottom
+
+                // Top (Los 2 puntos altos atrás en Y negativo)
+                -hs, -hs, hs,   // 4: Back-Left-Top
+                hs, -hs, hs    // 5: Back-Right-Top
         );
 
-        // Coordenadas de textura (Dummy)
         mesh.getTexCoords().addAll(0, 0);
 
-        // Caras (Faces)
+        // Caras (Re-conectando los puntos nuevos)
         mesh.getFaces().addAll(
-                0,0, 1,0, 2,0,  // Frente
-                3,0, 5,0, 4,0,  // Atrás
-                0,0, 3,0, 4,0,  // Abajo 1
-                0,0, 4,0, 1,0,  // Abajo 2
-                2,0, 1,0, 4,0,  // Rampa (Diagonal) 1
-                2,0, 4,0, 5,0,  // Rampa (Diagonal) 2
-                2,0, 5,0, 3,0,  // Lado izquierdo 1
-                2,0, 3,0, 0,0   // Lado izquierdo 2
+                // Base
+                0,0, 1,0, 3,0,
+                0,0, 3,0, 2,0,
+                // Frente (Rectángulo bajo)
+                0,0, 2,0, 1,0, // Invertido para que se vea por fuera
+                // Atrás (Rectángulo alto)
+                2,0, 3,0, 5,0,
+                2,0, 5,0, 4,0,
+                // Rampa (La pendiente)
+                0,0, 1,0, 5,0,
+                0,0, 5,0, 4,0,
+                // Lados (Triángulos)
+                0,0, 4,0, 2,0, // Izquierda
+                1,0, 3,0, 5,0  // Derecha
         );
 
         MeshView view = new MeshView(mesh);
         view.setMaterial(DEFAULT_MAT);
-
-        // Ajuste para centrar visualmente aprox
-        view.setTranslateX(-s/2);
-        view.setTranslateY(s/2);
-        view.setTranslateZ(-s/2);
 
         return new Group(view);
     }

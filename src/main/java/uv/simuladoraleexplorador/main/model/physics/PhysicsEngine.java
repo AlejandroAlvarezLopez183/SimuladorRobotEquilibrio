@@ -151,4 +151,10 @@ public class PhysicsEngine {
         physicsToGraphicsMap.put(body, graphicsNode);
         return body;
     }
+    public RigidBody addRampBody(Node graphicsNode, float mass, float size) {
+        RigidBody body = RigidBodyFactory.createRamp(graphicsNode, mass, size);
+        dynamicsWorld.addRigidBody(body);
+        physicsToGraphicsMap.put(body, graphicsNode);
+        return body;
+    }
 }

@@ -105,8 +105,8 @@ public class World3D {
                     physics.stepSimulation(timeStep);
                 }
                 // El Gizmo sí debe actualizarse siempre para que siga al mouse
-                if (currentGizmo != null) {
-                    currentGizmo.updatePosition();
+                if (robotManager != null) {
+                    robotManager.updateAllGizmos();
                 }
             }
         };

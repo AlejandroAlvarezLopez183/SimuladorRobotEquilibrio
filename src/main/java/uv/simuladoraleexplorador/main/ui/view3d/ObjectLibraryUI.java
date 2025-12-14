@@ -36,7 +36,7 @@ public class ObjectLibraryUI {
 
         // La rampa la trataremos como Caja en física por ahora para no complicar con ConvexHulls hoy
         Button btnRamp = createButton("Rampa", () -> {
-            robotManager.spawnPrimitive(PrimitiveFactory.createRamp(15), RobotManager.ShapeType.BOX, 15, 15);
+            robotManager.spawnPrimitive(PrimitiveFactory.createRamp(15), RobotManager.ShapeType.RAMP, 15, 15);
         });
 
         container.getChildren().addAll(title, btnCube, btnSphere, btnCylinder, btnRamp);

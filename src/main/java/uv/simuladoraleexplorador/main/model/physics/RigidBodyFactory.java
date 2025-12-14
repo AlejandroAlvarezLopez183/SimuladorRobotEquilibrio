@@ -9,6 +9,8 @@ import javax.vecmath.Vector3f;
 import javafx.scene.Node;
 import com.bulletphysics.collision.shapes.SphereShape;
 import com.bulletphysics.collision.shapes.CylinderShape;
+import com.bulletphysics.collision.shapes.ConvexHullShape;
+import com.bulletphysics.util.ObjectArrayList;
 
 public class RigidBodyFactory {
 
@@ -95,5 +97,25 @@ public class RigidBodyFactory {
         body.setFriction(0.8f);
         body.activate();
         return body;
+    }
+    public static RigidBody createRamp(Node graphicsNode, float mass, float size) {
+        ObjectArrayList<Vector3f> points = new ObjectArrayList<>();
+
+        // Usamos la misma lógica de "mitad de tamaño" para centrar
+        float hs = size / 2.0f;
+        // Base (Y = hs)
+        points.add(new Vector3f(-hs, hs, -hs));
+        points.add(new Vector3f( hs, hs, -hs));
+        points.add(new Vector3f(-hs, hs,  hs));
+        points.add(new Vector3f( hs, hs,  hs));
+
+        // Top (Y = -hs)
+        points.add(new Vector3f(-hs, -hs, hs));
+        points.add(new Vector3f( hs, -hs, hs));
+
+        // JBullet calcula el ConvexHull
+        ConvexHullShape shape = new ConvexHullShape(points);
+
+        return buildBody(graphicsNode, mass, shape);
     }
 }

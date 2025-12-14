@@ -147,35 +147,10 @@ public class MainController {
 
     @FXML
     public void handleResetSim() {
-        if (currentBody != null && world3D != null) {
-            // 1. Pausar simulación
+        if (world3D != null) {
             world3D.pause();
-
-            // 2. Definir posición de reinicio (Arriba)
-            float resetY = -100f; // Un poco más alto para asegurar que no choque con nada
-
-            com.bulletphysics.linearmath.Transform resetTrans = new com.bulletphysics.linearmath.Transform();
-            resetTrans.setIdentity();
-            resetTrans.origin.set(0, resetY, 0);
-
-            // Mantener la rotación actual para no marear al robot
-            currentBody.getWorldTransform(new com.bulletphysics.linearmath.Transform()).getRotation(new javax.vecmath.Quat4f());
-
-            // 3. Aplicar al CUERPO FÍSICO (Esto mueve el Wrapper automáticamente)
-            currentBody.setWorldTransform(resetTrans);
-
-            // 4. MATAR VELOCIDAD (Frenado total)
-            currentBody.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
-            currentBody.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
-            currentBody.clearForces();
-            currentBody.activate();
-
-            // En su lugar, pedimos al motor que sincronice el Wrapper:
-            world3D.getPhysicsEngine().updateGraphics();
-
-            // Opcional: Si tienes el Gizmo, actualízalo también
-            // (Aunque el loop lo hará solo, esto es para verlo al instante)
-            world3D.notifyObjectMovedManually(null); // Truco para forzar refresh si fuera necesario
+            // Le decimos al manager: "¡Sube a todos al cielo!"
+            world3D.getRobotManager().resetAllPositions();
         }
     }
 
