@@ -18,7 +18,7 @@ public class ObjectEditorUI {
     private final VBox container;
     private final PhysicsEngine physics;
 
-    // Referencia al objeto seleccionado actualmente
+    // Estado actual
     private Node currentNode;
     private RigidBody currentBody;
     private RobotManager.ShapeType currentType;
@@ -29,7 +29,6 @@ public class ObjectEditorUI {
         this.container.setPadding(new Insets(10));
         this.container.setStyle("-fx-background-color: #2b2b2b;");
 
-        // Mensaje por defecto
         Label lbl = new Label("Selecciona un objeto para editar");
         lbl.setStyle("-fx-text-fill: #888;");
         container.getChildren().add(lbl);
@@ -41,14 +40,10 @@ public class ObjectEditorUI {
         return pane;
     }
 
-    /**
-     * Este método se llamará cuando hagas clic en un objeto del mundo 3D.
-     */
     public void setSelectedObject(Node node, RigidBody body, RobotManager.ShapeType type) {
         this.currentNode = node;
         this.currentBody = body;
         this.currentType = type;
-
         refreshUI();
     }
 
@@ -60,6 +55,7 @@ public class ObjectEditorUI {
             return;
         }
 
+        // Switch para decidir qué controles mostrar
         switch (currentType) {
             case BOX:
                 buildBoxControls();
@@ -70,92 +66,101 @@ public class ObjectEditorUI {
             case CYLINDER:
                 buildCylinderControls();
                 break;
-            case RAMP:
+            case RAMP: // ¡AHORA SÍ SOPORTAMOS LA RAMPA!
+                buildRampControls();
+                break;
             default:
-                container.getChildren().add(new Label("Este objeto no es editable (aún)."));
+                container.getChildren().add(new Label("Objeto no editable."));
                 break;
         }
     }
 
-    // --- CONSTRUCTORES DE PANELES ESPECÍFICOS ---
+    // --- PANELES ESPECÍFICOS ---
 
     private void buildBoxControls() {
-        // Intento 1: ¿Es una Caja Primitiva (creada por nosotros)?
+        // Buscamos la forma visual exacta (La caja naranja, no la roja de debug)
         Box boxGraphic = findShapeInGroup(currentNode, Box.class);
 
-        if (boxGraphic != null) {
-            // Lógica para Caja Primitiva: Sliders individuales de tamaño
+        if (boxGraphic != null && isNotDebugBox(boxGraphic)) {
+            // ES UN CUBO NATIVO (Tiene forma Box visual)
             addSlider("Ancho (X)", 1, 50, boxGraphic.getWidth(), val -> {
-                boxGraphic.setWidth(val); // Visual
-                physics.resizeBoxBody(currentBody, (float)val, (float)boxGraphic.getHeight(), (float)boxGraphic.getDepth()); // Físico
+                boxGraphic.setWidth(val);
+                physics.resizeBoxBody(currentBody, (float)val, (float)boxGraphic.getHeight(), (float)boxGraphic.getDepth());
             });
-
             addSlider("Alto (Y)", 1, 50, boxGraphic.getHeight(), val -> {
-                boxGraphic.setHeight(val); // Visual
-                physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)val, (float)boxGraphic.getDepth()); // Físico
+                boxGraphic.setHeight(val);
+                physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)val, (float)boxGraphic.getDepth());
             });
-
             addSlider("Profundidad (Z)", 1, 50, boxGraphic.getDepth(), val -> {
-                boxGraphic.setDepth(val); // Visual
-                physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)boxGraphic.getHeight(), (float)val); // Físico
+                boxGraphic.setDepth(val);
+                physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)boxGraphic.getHeight(), (float)val);
             });
         } else {
-            // Intento 2: Es un Modelo Importado (Mesa, Robot, etc.) -> Usamos ESCALAS INDIVIDUALES
-            // Nota: Al escalar un modelo importado, asumimos que su collider es una CAJA
-
-            // Dimensiones originales sin escala (usamos getBoundsInLocal)
-            javafx.geometry.Bounds originalBounds = currentNode.getBoundsInLocal();
-            double originalW = originalBounds.getWidth();
-            double originalH = originalBounds.getHeight();
-            double originalD = originalBounds.getDepth();
-
-            // Slider Escala X (Ancho)
-            addSlider("Escala X (Ancho)", 0.1, 5.0, currentNode.getScaleX(), val -> {
-                currentNode.setScaleX(val); // Escala visual
-                updatePhysicsForImportedObject(originalW, originalH, originalD); // Escala física
-            });
-
-            // Slider Escala Y (Alto)
-            addSlider("Escala Y (Alto)", 0.1, 5.0, currentNode.getScaleY(), val -> {
-                currentNode.setScaleY(val); // Escala visual
-                updatePhysicsForImportedObject(originalW, originalH, originalD); // Escala física
-            });
-
-            // Slider Escala Z (Profundidad)
-            addSlider("Escala Z (Profundidad)", 0.1, 5.0, currentNode.getScaleZ(), val -> {
-                currentNode.setScaleZ(val); // Escala visual
-                updatePhysicsForImportedObject(originalW, originalH, originalD); // Escala física
-            });
-
-            Label nota = new Label("(Objeto Importado: Edición por Escala Individual)");
-            nota.setStyle("-fx-font-size: 10px; -fx-text-fill: #666;");
-            container.getChildren().add(nota);
+            // ES UN OBJETO IMPORTADO (Mesa, Silla...) -> Usamos Escala
+            buildScalingControls("Objeto Importado");
         }
     }
 
     private void buildSphereControls() {
+        // Búsqueda recursiva encuentra la esfera aunque esté muy anidada
         Sphere sphereGraphic = findShapeInGroup(currentNode, Sphere.class);
-        if (sphereGraphic == null) return;
 
-        addSlider("Radio", 1, 30, sphereGraphic.getRadius(), val -> {
-            sphereGraphic.setRadius(val); // Visual
-            physics.resizeSphereBody(currentBody, (float)val); // Físico
-        });
+        if (sphereGraphic != null) {
+            addSlider("Radio", 1, 30, sphereGraphic.getRadius(), val -> {
+                sphereGraphic.setRadius(val);
+                physics.resizeSphereBody(currentBody, (float)val);
+            });
+        } else {
+            container.getChildren().add(new Label("Error: No encuentro la forma visual Sphere."));
+        }
     }
 
     private void buildCylinderControls() {
         Cylinder cylGraphic = findShapeInGroup(currentNode, Cylinder.class);
-        if (cylGraphic == null) return;
 
-        addSlider("Radio", 1, 20, cylGraphic.getRadius(), val -> {
-            cylGraphic.setRadius(val); // Visual
-            physics.resizeCylinderBody(currentBody, (float)val, (float)cylGraphic.getHeight()); // Físico
+        if (cylGraphic != null) {
+            addSlider("Radio", 1, 20, cylGraphic.getRadius(), val -> {
+                cylGraphic.setRadius(val);
+                physics.resizeCylinderBody(currentBody, (float)val, (float)cylGraphic.getHeight());
+            });
+            addSlider("Altura", 1, 60, cylGraphic.getHeight(), val -> {
+                cylGraphic.setHeight(val);
+                physics.resizeCylinderBody(currentBody, (float)cylGraphic.getRadius(), (float)val);
+            });
+        } else {
+            container.getChildren().add(new Label("Error: No encuentro la forma visual Cylinder."));
+        }
+    }
+
+    private void buildRampControls() {
+        // Para la rampa, usamos los controles de Escala, ya que es una forma compleja
+        buildScalingControls("Rampa (Escala)");
+    }
+
+    // --- REUTILIZABLE: Controles de Escala (X, Y, Z) ---
+    // Sirve para Rampa y Objetos Importados
+    private void buildScalingControls(String labelTitle) {
+        // Importante: Usamos la escala del NODO PADRE (currentNode)
+        // Esto escala todo: el gráfico visual y le decimos a físicas que escale la colisión.
+
+        addSlider("Escala X (Ancho)", 0.1, 5.0, currentNode.getScaleX(), val -> {
+            currentNode.setScaleX(val);
+            physics.updateBodyScale(currentBody, (float)val, (float)currentNode.getScaleY(), (float)currentNode.getScaleZ());
         });
 
-        addSlider("Altura", 1, 60, cylGraphic.getHeight(), val -> {
-            cylGraphic.setHeight(val); // Visual
-            physics.resizeCylinderBody(currentBody, (float)cylGraphic.getRadius(), (float)val); // Físico
+        addSlider("Escala Y (Alto)", 0.1, 5.0, currentNode.getScaleY(), val -> {
+            currentNode.setScaleY(val);
+            physics.updateBodyScale(currentBody, (float)currentNode.getScaleX(), (float)val, (float)currentNode.getScaleZ());
         });
+
+        addSlider("Escala Z (Largo)", 0.1, 5.0, currentNode.getScaleZ(), val -> {
+            currentNode.setScaleZ(val);
+            physics.updateBodyScale(currentBody, (float)currentNode.getScaleX(), (float)currentNode.getScaleY(), (float)val);
+        });
+
+        Label lbl = new Label("(" + labelTitle + ")");
+        lbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #666;");
+        container.getChildren().add(lbl);
     }
 
     // --- UTILIDADES ---
@@ -163,41 +168,30 @@ public class ObjectEditorUI {
     private void addSlider(String name, double min, double max, double current, java.util.function.DoubleConsumer action) {
         Label lbl = new Label(name);
         lbl.setStyle("-fx-text-fill: #ccc;");
-
         Slider slider = new Slider(min, max, current);
-        slider.setShowTickLabels(false);
-        slider.setShowTickMarks(false);
-
-        // Listener: Actualizar en tiempo real al arrastrar
-        slider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            action.accept(newVal.doubleValue());
-        });
-
+        slider.valueProperty().addListener((obs, old, val) -> action.accept(val.doubleValue()));
         container.getChildren().addAll(lbl, slider);
     }
 
-    // Método auxiliar para actualizar la física del objeto importado
-    private void updatePhysicsForImportedObject(double originalW, double originalH, double originalD) {
-        double scaleX = currentNode.getScaleX();
-        double scaleY = currentNode.getScaleY();
-        double scaleZ = currentNode.getScaleZ();
-
-        float newW = (float) (originalW * scaleX);
-        float newH = (float) (originalH * scaleY);
-        float newD = (float) (originalD * scaleZ);
-
-        // Actualizar física
-        physics.resizeBoxBody(currentBody, newW, newH, newD);
-    }
-
-    // Busca la forma geométrica (Box, Sphere) dentro del Grupo del nodo
+    // --- CORRECCIÓN CLAVE: BÚSQUEDA RECURSIVA ---
+    // Esto arregla el problema de que no encontraba Cilindros ni Esferas
     private <T extends Node> T findShapeInGroup(Node node, Class<T> clazz) {
+        // 1. ¿Es este nodo lo que busco?
         if (clazz.isInstance(node)) return clazz.cast(node);
+
+        // 2. Si es un grupo, buscar en sus hijos (¡Y en los hijos de sus hijos!)
         if (node instanceof Group) {
             for (Node child : ((Group) node).getChildren()) {
-                if (clazz.isInstance(child)) return clazz.cast(child);
+                T found = findShapeInGroup(child, clazz); // Llamada recursiva
+                if (found != null) return found;
             }
         }
         return null;
+    }
+
+    // Pequeño filtro para evitar editar la "Caja Roja" de debug si llegara a aparecer
+    private boolean isNotDebugBox(Box box) {
+        // Las cajas de debug son transparentes al mouse o DrawMode.LINE
+        return !box.isMouseTransparent();
     }
 }

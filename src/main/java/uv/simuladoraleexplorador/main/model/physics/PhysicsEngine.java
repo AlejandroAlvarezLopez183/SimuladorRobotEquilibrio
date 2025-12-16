@@ -214,4 +214,29 @@ public class PhysicsEngine {
         }
         return null;
     }
+    public void updateBodyScale(RigidBody body, float x, float y, float z) {
+        if (body == null) return;
+
+        com.bulletphysics.collision.shapes.CollisionShape shape = body.getCollisionShape();
+        // Bullet permite escalar cualquier forma (Caja, Esfera, Hull, Malla)
+        shape.setLocalScaling(new Vector3f(x, y, z));
+
+        // Es vital recalcular la inercia para que la física (peso/giro) se sienta bien al cambiar de tamaño
+        float mass = 1.0f;
+        if (body.getInvMass() != 0) {
+            mass = 1.0f / body.getInvMass();
+        }
+
+        Vector3f localInertia = new Vector3f(0, 0, 0);
+        shape.calculateLocalInertia(mass, localInertia);
+
+        body.setMassProps(mass, localInertia);
+        body.updateInertiaTensor();
+
+        // Despertar al objeto para que reaccione al cambio
+        body.activate();
+
+        // Forzar actualización de límites
+        dynamicsWorld.updateSingleAabb(body);
+    }
 }
