@@ -157,4 +157,61 @@ public class PhysicsEngine {
         physicsToGraphicsMap.put(body, graphicsNode);
         return body;
     }
+
+    public void resizeSphereBody(RigidBody body, float newRadius) {
+        if (body == null) return;
+
+        com.bulletphysics.collision.shapes.SphereShape newShape =
+                new com.bulletphysics.collision.shapes.SphereShape(newRadius);
+
+        updateBodyShape(body, newShape);
+    }
+    public void resizeCylinderBody(RigidBody body, float newRadius, float newHeight) {
+        if (body == null) return;
+
+        com.bulletphysics.collision.shapes.CylinderShape newShape =
+                new com.bulletphysics.collision.shapes.CylinderShape(new Vector3f(newRadius, newHeight / 2, newRadius));
+
+        updateBodyShape(body, newShape);
+    }
+    private void updateBodyShape(RigidBody body, com.bulletphysics.collision.shapes.CollisionShape newShape) {
+        // Importante: JBullet necesita recalcular la inercia si la forma cambia
+        float mass = 1.0f; // Valor por defecto por seguridad
+        if (body.getInvMass() != 0) {
+            mass = 1.0f / body.getInvMass();
+        }
+
+        Vector3f localInertia = new Vector3f(0, 0, 0);
+        newShape.calculateLocalInertia(mass, localInertia);
+
+        // Aplicamos cambios
+        body.setCollisionShape(newShape);
+        body.setMassProps(mass, localInertia);
+        body.updateInertiaTensor();
+
+        // Despertar el objeto si estaba "dormido"
+        body.activate();
+
+        // Forzar al mundo a actualizar sus límites (AABB) inmediatamente
+        dynamicsWorld.updateSingleAabb(body);
+    }
+
+    public void resizeBoxBody(RigidBody body, float newWidth, float newHeight, float newDepth) {
+        if (body == null) return;
+
+        // 1. Crear la nueva forma de caja
+        com.bulletphysics.collision.shapes.BoxShape newShape =
+                new com.bulletphysics.collision.shapes.BoxShape(new Vector3f(newWidth / 2, newHeight / 2, newDepth / 2));
+
+        // 2. Reemplazar la forma en el cuerpo
+        updateBodyShape(body, newShape);
+    }
+    public RigidBody getBodyFromGraphic(Node graphicNode) {
+        for (Map.Entry<RigidBody, Node> entry : physicsToGraphicsMap.entrySet()) {
+            if (entry.getValue() == graphicNode) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
 }

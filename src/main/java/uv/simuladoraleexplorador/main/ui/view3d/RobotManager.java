@@ -51,6 +51,7 @@ public class RobotManager {
         nuevoModelo.setTranslateY(-centerY);
         nuevoModelo.setTranslateZ(-centerZ);
         robotActor.getChildren().add(nuevoModelo);
+        robotActor.setUserData(ShapeType.BOX);
 
         createDebugBox(robotActor, realWidth, realHeight, realDepth);
 
@@ -84,6 +85,7 @@ public class RobotManager {
         Group actor = new Group();
         actor.getChildren().add(model);
 
+
         // Spawn aleatorio pequeño para que no se encimen
         double randomOffset = (Math.random() * 40) - 20;
         actor.setTranslateX(randomOffset);
@@ -91,7 +93,7 @@ public class RobotManager {
         actor.setTranslateZ(randomOffset);
 
         worldGroup.getChildren().add(actor);
-
+        actor.setUserData(type);
         float mass = 5.0f;
         switch (type) {
             case SPHERE:

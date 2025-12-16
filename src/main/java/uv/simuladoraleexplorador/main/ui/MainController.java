@@ -17,6 +17,7 @@ import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
 import uv.simuladoraleexplorador.main.ui.view3d.ObjectLibraryUI;
 import uv.simuladoraleexplorador.main.ui.view3d.World3D;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
+import uv.simuladoraleexplorador.main.ui.view3d.ObjectEditorUI;
 
 // Imports Matemáticos (JBullet y Vecmath)
 import javax.vecmath.Quat4f;
@@ -25,7 +26,7 @@ import javax.vecmath.Vector3f;
 import java.io.File;
 
 public class MainController {
-
+    private ObjectEditorUI objectEditor;
     @FXML private StackPane contentPane;
     @FXML private Button btn2D;
     @FXML private Button btn3D;
@@ -51,6 +52,9 @@ public class MainController {
 
         ObjectLibraryUI libraryUI = new ObjectLibraryUI(world3D.getRobotManager());
         inspectorContainer.getChildren().add(0, libraryUI.getView());
+
+        objectEditor = new ObjectEditorUI(world3D.getPhysicsEngine());
+        inspectorContainer.getChildren().add(1, objectEditor.getView());
         // Listener para actualizar la resistencia del aire en tiempo real
         sliderDrag.valueProperty().addListener((obs, oldVal, newVal) -> {
             handleUpdatePhysics();
@@ -61,6 +65,7 @@ public class MainController {
         if (sliderRotX != null) {
             sliderRotX.setValue(180);
         }
+        setupSelectionHandler();
     }
 
     public void iniciarSistema(Stage stage) {
@@ -234,5 +239,41 @@ public class MainController {
                 System.err.println("Error en valores de física");
             }
         }
+    }
+
+    private void setupSelectionHandler() {
+        // CORRECCIÓN: Usamos addEventHandler para NO borrar la lógica de la cámara
+        world3D.getSubScene().addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+
+            // Solo actuar si es clic izquierdo
+            if (event.isPrimaryButtonDown()) {
+                javafx.scene.Node pickedNode = event.getPickResult().getIntersectedNode();
+
+                // Buscar el padre principal (el Grupo que contiene todo)
+                javafx.scene.Node rootObj = findRootObject(pickedNode);
+
+                if (rootObj != null) {
+                    // Recuperar cuerpo físico
+                    com.bulletphysics.dynamics.RigidBody body = world3D.getPhysicsEngine().getBodyFromGraphic(rootObj);
+
+                    // Recuperar tipo
+                    Object typeObj = rootObj.getUserData();
+
+                    if (body != null && typeObj instanceof uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) {
+                        System.out.println("Seleccionado: " + typeObj); // Debug
+                        objectEditor.setSelectedObject(rootObj, body, (uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) typeObj);
+                    }
+                }
+            }
+        });
+    }
+    private javafx.scene.Node findRootObject(javafx.scene.Node node) {
+        while (node != null) {
+            if (node.getUserData() instanceof uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) {
+                return node;
+            }
+            node = node.getParent();
+        }
+        return null; // No es un objeto editable
     }
 }
