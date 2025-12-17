@@ -17,6 +17,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.control.Accordion?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.geometry.Insets?>
 <BorderPane prefHeight="768.0" prefWidth="1024.0" stylesheets="@../styles/dark_theme.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="uv.simuladoraleexplorador.main.ui.MainController">
 
     <top>
@@ -54,6 +55,14 @@
                         <Separator orientation="VERTICAL" />
 
                         <Button mnemonicParsing="false" onAction="#handleResetSim" text="Resetear Posición" />
+
+                        <Button fx:id="btnDelete" mnemonicParsing="false" onAction="#handleDeleteSelected"
+                                prefWidth="200.0" text="ELIMINAR SELECCIONADO"
+                                style="-fx-base: #722; -fx-text-fill: white; -fx-font-weight: bold;">
+                            <VBox.margin>
+                                <Insets left="40.0" />
+                            </VBox.margin>
+                        </Button>
                     </items>
                 </ToolBar>
             </children>

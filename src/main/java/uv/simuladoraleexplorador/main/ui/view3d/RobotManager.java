@@ -1,6 +1,7 @@
 package uv.simuladoraleexplorador.main.ui.view3d;
 import javafx.geometry.Bounds;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
@@ -173,5 +174,27 @@ public class RobotManager {
         for (TransformGizmo g : gizmos) {
             g.updatePosition();
         }
+    }
+
+    public void removeRobot(Node robotNode, RigidBody body) {
+        // 1. Eliminar de las listas internas
+        bodies.remove(body);
+
+        // 2. Buscar y eliminar el Gizmo asociado a ese nodo
+        gizmos.removeIf(g -> {
+            if (g.getTargetNode() == robotNode) {
+                worldGroup.getChildren().remove(g); // Quitar gizmo de la escena
+                return true;
+            }
+            return false;
+        });
+
+        // 3. Eliminar de la física
+        physics.removeBody(body);
+
+        // 4. Eliminar visualmente del mundo
+        worldGroup.getChildren().remove(robotNode);
+
+        System.out.println("Objeto eliminado correctamente.");
     }
 }

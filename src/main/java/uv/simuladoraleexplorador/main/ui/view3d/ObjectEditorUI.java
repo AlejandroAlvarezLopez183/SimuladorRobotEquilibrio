@@ -1,5 +1,7 @@
 package uv.simuladoraleexplorador.main.ui.view3d;
 
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -18,10 +20,14 @@ public class ObjectEditorUI {
     private final VBox container;
     private final PhysicsEngine physics;
 
+    public Node getCurrentNode() { return currentNode; }
+    public RigidBody getCurrentBody() { return currentBody; }
+
     // Estado actual
     private Node currentNode;
     private RigidBody currentBody;
     private RobotManager.ShapeType currentType;
+    private final ObjectProperty<Node> selectedNodeProperty = new SimpleObjectProperty<>(null);
 
     public ObjectEditorUI(PhysicsEngine physics) {
         this.physics = physics;
@@ -44,7 +50,14 @@ public class ObjectEditorUI {
         this.currentNode = node;
         this.currentBody = body;
         this.currentType = type;
+
+        // Actualizamos la propiedad aquí
+        selectedNodeProperty.set(node);
+
         refreshUI();
+    }
+    public ObjectProperty<Node> selectedNodeProperty() {
+        return selectedNodeProperty;
     }
 
     private void refreshUI() {

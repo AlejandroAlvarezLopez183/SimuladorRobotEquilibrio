@@ -1,6 +1,7 @@
 package uv.simuladoraleexplorador.main.ui;
 
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
@@ -30,6 +31,7 @@ public class MainController {
     @FXML private StackPane contentPane;
     @FXML private Button btn2D;
     @FXML private Button btn3D;
+    @FXML private Button btnDelete;
     @FXML private javafx.scene.layout.VBox inspectorContainer;
     // Controles del Inspector
     @FXML private TextField txtMasa;
@@ -65,6 +67,7 @@ public class MainController {
         if (sliderRotX != null) {
             sliderRotX.setValue(180);
         }
+        btnDelete.disableProperty().bind(objectEditor.selectedNodeProperty().isNull());
         setupSelectionHandler();
     }
 
@@ -276,4 +279,20 @@ public class MainController {
         }
         return null; // No es un objeto editable
     }
+    @FXML
+    public void handleDeleteSelected() {
+        Node selectedNode = objectEditor.getCurrentNode();
+        com.bulletphysics.dynamics.RigidBody selectedBody = objectEditor.getCurrentBody();
+
+        if (selectedNode != null && selectedBody != null) {
+            // Ejecutar eliminación
+            world3D.getRobotManager().removeRobot(selectedNode, selectedBody);
+
+            // Limpiar el editor para que no muestre controles de algo que ya no existe
+            objectEditor.setSelectedObject(null, null, null);
+        } else {
+            System.out.println("No hay ningún objeto seleccionado para eliminar.");
+        }
+    }
+
 }

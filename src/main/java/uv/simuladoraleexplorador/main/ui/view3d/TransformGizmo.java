@@ -115,4 +115,7 @@ public class TransformGizmo extends Group {
         this.setTranslateY(targetNode.getTranslateY());
         this.setTranslateZ(targetNode.getTranslateZ());
     }
+    public Group getTargetNode() {
+        return targetNode;
+    }
 }
