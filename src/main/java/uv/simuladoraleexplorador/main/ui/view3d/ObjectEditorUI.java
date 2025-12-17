@@ -8,8 +8,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;
+import javafx.scene.shape.Shape3D;
 import javafx.scene.shape.Sphere;
 import javafx.scene.Group;
 import com.bulletphysics.dynamics.RigidBody;
@@ -28,6 +31,8 @@ public class ObjectEditorUI {
     private RigidBody currentBody;
     private RobotManager.ShapeType currentType;
     private final ObjectProperty<Node> selectedNodeProperty = new SimpleObjectProperty<>(null);
+    private PhongMaterial lastMaterial;
+    private Shape3D lastShape;
 
     public ObjectEditorUI(PhysicsEngine physics) {
         this.physics = physics;
@@ -47,17 +52,47 @@ public class ObjectEditorUI {
     }
 
     public void setSelectedObject(Node node, RigidBody body, RobotManager.ShapeType type) {
+        // 1. Restaurar el objeto anterior si existía
+        restorePreviousEffect();
+
         this.currentNode = node;
         this.currentBody = body;
         this.currentType = type;
-
-        // Actualizamos la propiedad aquí
         selectedNodeProperty.set(node);
+
+        applySelectionEffect(node);
 
         refreshUI();
     }
     public ObjectProperty<Node> selectedNodeProperty() {
         return selectedNodeProperty;
+    }
+    private void applySelectionEffect(Node node) {
+        if (node instanceof Group) {
+            // Buscamos la forma 3D dentro del grupo (Caja, Esfera, etc.)
+            // Reutilizamos tu método findShapeInGroup pero para cualquier Shape3D
+            Shape3D shape = findShapeInGroup(node, Shape3D.class);
+            if (shape != null && shape.getMaterial() instanceof PhongMaterial) {
+                lastShape = shape;
+                PhongMaterial originalMat = (PhongMaterial) shape.getMaterial();
+
+                // Guardamos una copia para restaurar luego
+                lastMaterial = originalMat;
+
+                // Creamos un material de "Selección" (Brillo cian/azul)
+                PhongMaterial selectionMat = new PhongMaterial();
+                selectionMat.setDiffuseColor(originalMat.getDiffuseColor());
+                selectionMat.setSpecularColor(Color.CYAN);
+                // El truco del brillo:
+                selectionMat.setSelfIlluminationMap(null); // Opcional: podrías usar un mapa
+                selectionMat.setSpecularPower(10.0);
+
+                // Alternativa simple: darle un color de emisión
+                // shape.setEffect(new javafx.scene.effect.Glow(0.5)); // Glow es para 2D, mejor material:
+
+                shape.setMaterial(selectionMat);
+            }
+        }
     }
 
     private void refreshUI() {
@@ -206,5 +241,13 @@ public class ObjectEditorUI {
     private boolean isNotDebugBox(Box box) {
         // Las cajas de debug son transparentes al mouse o DrawMode.LINE
         return !box.isMouseTransparent();
+    }
+
+    private void restorePreviousEffect() {
+        if (lastShape != null && lastMaterial != null) {
+            lastShape.setMaterial(lastMaterial);
+            lastShape = null;
+            lastMaterial = null;
+        }
     }
 }

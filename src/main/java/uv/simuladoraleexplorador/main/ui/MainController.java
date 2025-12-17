@@ -266,6 +266,9 @@ public class MainController {
                         System.out.println("Seleccionado: " + typeObj); // Debug
                         objectEditor.setSelectedObject(rootObj, body, (uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) typeObj);
                     }
+                }else {
+                    // Si hace clic en la nada (o en el suelo que no es ShapeType)
+                    objectEditor.setSelectedObject(null, null, null);
                 }
             }
         });
