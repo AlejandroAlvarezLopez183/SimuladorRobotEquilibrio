@@ -93,28 +93,26 @@ public class RigidBodyFactory {
         RigidBodyConstructionInfo rbInfo = new RigidBodyConstructionInfo(mass, myMotionState, shape, localInertia);
         RigidBody body = new RigidBody(rbInfo);
 
-        body.setRestitution(0.4f);
-        body.setFriction(0.8f);
+        body.setFriction(0.2f);    // Fricción baja para que resbalen
+        body.setRestitution(0.1f);
         body.activate();
         return body;
     }
+
     public static RigidBody createRamp(Node graphicsNode, float mass, float size) {
         ObjectArrayList<Vector3f> points = new ObjectArrayList<>();
-
-        // Usamos la misma lógica de "mitad de tamaño" para centrar
         float hs = size / 2.0f;
-        // Base (Y = hs)
-        points.add(new Vector3f(-hs, hs, -hs));
-        points.add(new Vector3f( hs, hs, -hs));
-        points.add(new Vector3f(-hs, hs,  hs));
-        points.add(new Vector3f( hs, hs,  hs));
 
-        // Top (Y = -hs)
-        points.add(new Vector3f(-hs, -hs, hs));
-        points.add(new Vector3f( hs, -hs, hs));
+        // Estos puntos DEBEN ser los mismos que en PrimitiveFactory
+        points.add(new Vector3f(-hs,  hs, -hs)); // Base
+        points.add(new Vector3f( hs,  hs, -hs));
+        points.add(new Vector3f(-hs,  hs,  hs));
+        points.add(new Vector3f( hs,  hs,  hs));
+        points.add(new Vector3f(-hs, -hs,  hs)); // Top atrás
+        points.add(new Vector3f( hs, -hs,  hs));
 
-        // JBullet calcula el ConvexHull
         ConvexHullShape shape = new ConvexHullShape(points);
+        shape.setMargin(0.04f); // Un margen pequeño ayuda a la estabilidad de colisión
 
         return buildBody(graphicsNode, mass, shape);
     }

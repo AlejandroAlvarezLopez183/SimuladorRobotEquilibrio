@@ -103,7 +103,7 @@ public class RobotManager {
             case CYLINDER:
                 activeBody = physics.addCylinderBody(actor, mass, (float)sizeDim1, (float)sizeDim2);
                 break;
-            case RAMP: // <--- NUEVO CASO
+            case RAMP:
                 activeBody = physics.addRampBody(actor, mass, (float)sizeDim1);
                 break;
             case BOX:
