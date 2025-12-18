@@ -42,6 +42,9 @@ public class MainController {
 
     private InfiniteGrid2D grid2D;
     private World3D world3D;
+    private double lastMouseX;
+    private double lastMouseY;
+    private boolean isDraggingObject = false;
 
     // Referencias al modelo actual
     private Group currentRobotModel;
@@ -245,33 +248,88 @@ public class MainController {
     }
 
     private void setupSelectionHandler() {
-        // CORRECCIÓN: Usamos addEventHandler para NO borrar la lógica de la cámara
-        world3D.getSubScene().addEventHandler(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> {
+        world3D.getSubScene().addEventHandler(javafx.scene.input.MouseEvent.ANY, event -> {
 
-            // Solo actuar si es clic izquierdo
-            if (event.isPrimaryButtonDown()) {
-                javafx.scene.Node pickedNode = event.getPickResult().getIntersectedNode();
+            // --- 1. CLIC (Detectar selección) ---
+            if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_PRESSED) {
+                if (event.isPrimaryButtonDown()) {
+                    lastMouseX = event.getSceneX();
+                    lastMouseY = event.getSceneY();
 
-                // Buscar el padre principal (el Grupo que contiene todo)
-                javafx.scene.Node rootObj = findRootObject(pickedNode);
+                    javafx.scene.Node pickedNode = event.getPickResult().getIntersectedNode();
+                    javafx.scene.Node rootObj = findRootObject(pickedNode);
 
-                if (rootObj != null) {
-                    // Recuperar cuerpo físico
-                    com.bulletphysics.dynamics.RigidBody body = world3D.getPhysicsEngine().getBodyFromGraphic(rootObj);
-
-                    // Recuperar tipo
-                    Object typeObj = rootObj.getUserData();
-
-                    if (body != null && typeObj instanceof uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) {
-                        System.out.println("Seleccionado: " + typeObj); // Debug
-                        objectEditor.setSelectedObject(rootObj, body, (uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) typeObj);
+                    // IMPORTANTE: Si tocamos el GIZMO, dejamos que el Gizmo haga su trabajo (no arrastramos el cuerpo)
+                    if (isGizmoPart(pickedNode)) {
+                        isDraggingObject = false;
+                        return;
                     }
-                }else {
-                    // Si hace clic en la nada (o en el suelo que no es ShapeType)
-                    objectEditor.setSelectedObject(null, null, null);
+
+                    if (rootObj != null) {
+                        com.bulletphysics.dynamics.RigidBody body = world3D.getPhysicsEngine().getBodyFromGraphic(rootObj);
+                        Object typeObj = rootObj.getUserData();
+
+                        if (body != null && typeObj instanceof uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) {
+                            objectEditor.setSelectedObject(rootObj, body, (uv.simuladoraleexplorador.main.ui.view3d.RobotManager.ShapeType) typeObj);
+                            isDraggingObject = true;
+                        }
+                    } else {
+                        objectEditor.setSelectedObject(null, null, null);
+                        isDraggingObject = false;
+                    }
                 }
             }
+
+            // --- 2. ARRASTRE TIPO TINKERCAD (Suelo X/Z relativo a la cámara) ---
+            else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_DRAGGED) {
+                if (event.isPrimaryButtonDown() && isDraggingObject) {
+                    javafx.scene.Node selectedNode = objectEditor.getCurrentNode();
+
+                    if (selectedNode != null) {
+                        double mouseDx = event.getSceneX() - lastMouseX;
+                        double mouseDy = event.getSceneY() - lastMouseY;
+
+                        // --- MAGIA MATEMÁTICA ---
+                        // 1. Obtener el ángulo Y de la cámara (hacia dónde miramos)
+                        // Nota: Necesitamos acceder a la cámara. Asumo que está en world3D.
+                        double cameraAngleRad = Math.toRadians(world3D.getCameraAngleY());
+
+                        double sensitivity = 0.5; // Ajustar velocidad
+
+                        // 2. Rotar el vector del mouse según la cámara
+                        // Fórmula de rotación 2D para mapear pantalla a mundo 3D
+                        double moveX = (mouseDx * Math.cos(cameraAngleRad)) - (mouseDy * Math.sin(cameraAngleRad));
+                        double moveZ = (mouseDx * Math.sin(cameraAngleRad)) + (mouseDy * Math.cos(cameraAngleRad));
+
+                        // 3. Aplicar movimiento (SOLO EN X y Z -> Suelo)
+                        selectedNode.setTranslateX(selectedNode.getTranslateX() + (moveX * sensitivity));
+                        selectedNode.setTranslateZ(selectedNode.getTranslateZ() + (moveZ * sensitivity));
+
+                        // 4. Actualizar Física
+                        world3D.notifyObjectMovedManually(selectedNode);
+
+                        lastMouseX = event.getSceneX();
+                        lastMouseY = event.getSceneY();
+                    }
+                }
+            }
+
+            // --- 3. SOLTAR ---
+            else if (event.getEventType() == javafx.scene.input.MouseEvent.MOUSE_RELEASED) {
+                isDraggingObject = false;
+            }
         });
+    }
+
+    // Método auxiliar para detectar si clicamos una flecha del Gizmo
+    private boolean isGizmoPart(javafx.scene.Node node) {
+        while (node != null) {
+            if (node instanceof uv.simuladoraleexplorador.main.ui.view3d.TransformGizmo) {
+                return true;
+            }
+            node = node.getParent();
+        }
+        return false;
     }
     private javafx.scene.Node findRootObject(javafx.scene.Node node) {
         while (node != null) {

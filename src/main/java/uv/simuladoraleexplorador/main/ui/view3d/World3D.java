@@ -166,4 +166,7 @@ public class World3D {
     public RobotManager getRobotManager() {
         return robotManager;
     }
+    public double getCameraAngleY() {
+        return rotateY.getAngle();
+    }
 }
