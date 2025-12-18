@@ -2,10 +2,7 @@ package uv.simuladoraleexplorador.main.ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -29,6 +26,7 @@ import java.io.File;
 public class MainController {
     private ObjectEditorUI objectEditor;
     @FXML private StackPane contentPane;
+    @FXML private ToggleButton btnGizmos;
     @FXML private Button btn2D;
     @FXML private Button btn3D;
     @FXML private Button btnDelete;
@@ -355,5 +353,11 @@ public class MainController {
             System.out.println("No hay ningún objeto seleccionado para eliminar.");
         }
     }
-
+    @FXML
+    public void handleToggleGizmos() {
+        if (world3D != null) {
+            boolean mostrar = btnGizmos.isSelected();
+            world3D.getRobotManager().setGizmosVisible(mostrar);
+        }
+    }
 }

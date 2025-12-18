@@ -18,6 +18,7 @@
 <?import javafx.scene.control.Accordion?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ToggleButton?>
 <BorderPane prefHeight="768.0" prefWidth="1024.0" stylesheets="@../styles/dark_theme.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="uv.simuladoraleexplorador.main.ui.MainController">
 
     <top>
@@ -63,6 +64,11 @@
                                 <Insets left="40.0" />
                             </VBox.margin>
                         </Button>
+
+                        <Separator orientation="VERTICAL" />
+
+                        <ToggleButton fx:id="btnGizmos" mnemonicParsing="false" selected="true"
+                                      text="Ver Controles" onAction="#handleToggleGizmos" />
                     </items>
                 </ToolBar>
             </children>

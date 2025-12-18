@@ -1,4 +1,5 @@
 package uv.simuladoraleexplorador.main.ui.view3d;
+
 import javafx.geometry.Bounds;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -19,13 +20,16 @@ public class RobotManager {
     private final PhysicsEngine physics;
     private final World3D worldRef;
 
-    // --- AHORA USAMOS LISTAS PARA MUCHOS OBJETOS ---
+    // Listas para control
     private final List<RigidBody> bodies = new ArrayList<>();
     private final List<TransformGizmo> gizmos = new ArrayList<>();
 
-    // Mantenemos referencia al ÚLTIMO creado por si queremos controlarlo específicamente
+    // Referencias al último creado
     private RigidBody activeBody;
     private TransformGizmo activeGizmo;
+
+    // Variable para controlar si las flechas se ven o no (Por defecto: SI)
+    private boolean areGizmosVisible = true; // <--- NUEVO IMPORTANTE
 
     public RobotManager(Group worldGroup, PhysicsEngine physics, World3D worldRef) {
         this.worldGroup = worldGroup;
@@ -35,9 +39,6 @@ public class RobotManager {
 
     // Método para importar CAD (.obj)
     public RigidBody spawnRobot(Group nuevoModelo) {
-        // NOTA: YA NO LLAMAMOS A cleanOldRobot() AQUÍ. ¡Queremos acumular!
-
-        // 1. Bounds y Centrado (Igual que antes)
         Bounds bounds = nuevoModelo.getBoundsInParent();
         float realWidth = Math.max(1.0f, (float) bounds.getWidth());
         float realHeight = Math.max(1.0f, (float) bounds.getHeight());
@@ -56,7 +57,7 @@ public class RobotManager {
 
         createDebugBox(robotActor, realWidth, realHeight, realDepth);
 
-        // Posicionar (Spawn un poco aleatorio para que no caigan uno encima de otro)
+        // Posicionar
         double randomX = (Math.random() * 20) - 10;
         double randomZ = (Math.random() * 20) - 10;
         double alturaSpawn = -50 - (realHeight / 2);
@@ -69,25 +70,24 @@ public class RobotManager {
 
         // Física
         activeBody = physics.addBoxBody(robotActor, 10.0f, realWidth, realHeight, realDepth);
-        bodies.add(activeBody); // ¡A la lista!
+        bodies.add(activeBody);
 
         // Gizmo
         activeGizmo = new TransformGizmo(robotActor, worldRef);
         worldGroup.getChildren().add(activeGizmo);
         gizmos.add(activeGizmo);
 
+        // APLICAR VISIBILIDAD ACTUAL AL NUEVO GIZMO
+        activeGizmo.setVisible(areGizmosVisible); // <--- NUEVO
+
         return activeBody;
     }
 
-    // Método para Primitivas (Cubos, Esferas del catálogo)
+    // Método para Primitivas
     public RigidBody spawnPrimitive(Group model, ShapeType type, double sizeDim1, double sizeDim2) {
-        // NO LIMPIAR. ACUMULAR.
-
         Group actor = new Group();
         actor.getChildren().add(model);
 
-
-        // Spawn aleatorio pequeño para que no se encimen
         double randomOffset = (Math.random() * 40) - 20;
         actor.setTranslateX(randomOffset);
         actor.setTranslateY(-50 - sizeDim1);
@@ -117,12 +117,13 @@ public class RobotManager {
         worldGroup.getChildren().add(activeGizmo);
         gizmos.add(activeGizmo);
 
+        // APLICAR VISIBILIDAD ACTUAL AL NUEVO GIZMO
+        activeGizmo.setVisible(areGizmosVisible); // <--- NUEVO
+
         return activeBody;
     }
 
-    // --- NUEVO MÉTODO PARA BORRAR TODO (SOLO CUANDO EL USUARIO QUIERA) ---
     public void clearScene() {
-        // 1. Borrar Físicas
         for (RigidBody b : bodies) {
             physics.removeBody(b);
         }
@@ -131,19 +132,17 @@ public class RobotManager {
         activeBody = null;
         activeGizmo = null;
 
-        // 2. Borrar Gráficos (Mantenemos el index 0 que es el suelo)
         while (worldGroup.getChildren().size() > 1) {
             worldGroup.getChildren().remove(1);
         }
         System.out.println(">> Escena Limpiada Completamente");
     }
 
-    // --- NUEVO: RESETEAR POSICIONES DE TODOS ---
     public void resetAllPositions() {
         for (RigidBody b : bodies) {
             resetOneBody(b);
         }
-        physics.updateGraphics(); // Forzar actualización visual
+        physics.updateGraphics();
     }
 
     private void resetOneBody(RigidBody b) {
@@ -151,7 +150,7 @@ public class RobotManager {
         com.bulletphysics.linearmath.Transform t = new com.bulletphysics.linearmath.Transform();
         t.setIdentity();
         b.getWorldTransform(t);
-        t.origin.y = -80f; // Subirlos al cielo
+        t.origin.y = -80f;
 
         b.setWorldTransform(t);
         b.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
@@ -170,6 +169,7 @@ public class RobotManager {
     public TransformGizmo getLastGizmo() {
         return activeGizmo;
     }
+
     public void updateAllGizmos() {
         for (TransformGizmo g : gizmos) {
             g.updatePosition();
@@ -177,24 +177,27 @@ public class RobotManager {
     }
 
     public void removeRobot(Node robotNode, RigidBody body) {
-        // 1. Eliminar de las listas internas
         bodies.remove(body);
 
-        // 2. Buscar y eliminar el Gizmo asociado a ese nodo
         gizmos.removeIf(g -> {
             if (g.getTargetNode() == robotNode) {
-                worldGroup.getChildren().remove(g); // Quitar gizmo de la escena
+                worldGroup.getChildren().remove(g);
                 return true;
             }
             return false;
         });
 
-        // 3. Eliminar de la física
         physics.removeBody(body);
-
-        // 4. Eliminar visualmente del mundo
         worldGroup.getChildren().remove(robotNode);
-
         System.out.println("Objeto eliminado correctamente.");
+    }
+
+    // Método llamado por el botón ToggleButton
+    public void setGizmosVisible(boolean visible) {
+        this.areGizmosVisible = visible;
+        // Recorrer todas las flechas existentes y cambiarlas
+        for (TransformGizmo g : gizmos) {
+            g.setVisible(visible);
+        }
     }
 }
