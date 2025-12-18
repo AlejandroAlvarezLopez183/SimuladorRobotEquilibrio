@@ -69,6 +69,9 @@
 
                         <ToggleButton fx:id="btnGizmos" mnemonicParsing="false" selected="true"
                                       text="Ver Controles" onAction="#handleToggleGizmos" />
+
+                        <ToggleButton fx:id="btnDebug" mnemonicParsing="false" selected="true"
+                                      text="Ver Límites" onAction="#handleToggleDebug" />
                     </items>
                 </ToolBar>
             </children>

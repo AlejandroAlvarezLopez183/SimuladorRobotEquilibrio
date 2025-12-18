@@ -35,6 +35,7 @@ public class MainController {
     @FXML private TextField txtMasa;
     @FXML private Slider sliderDrag;
     @FXML private Label lblAltura;
+    @FXML private ToggleButton btnDebug;
     // (Ya no necesitamos el sliderRotX en el initialize, pero si está en el FXML no estorba)
     @FXML private Slider sliderRotX;
 
@@ -358,6 +359,13 @@ public class MainController {
         if (world3D != null) {
             boolean mostrar = btnGizmos.isSelected();
             world3D.getRobotManager().setGizmosVisible(mostrar);
+        }
+    }
+    @FXML
+    public void handleToggleDebug() {
+        if (world3D != null) {
+            boolean mostrar = btnDebug.isSelected();
+            world3D.getRobotManager().setDebugVisible(mostrar);
         }
     }
 }

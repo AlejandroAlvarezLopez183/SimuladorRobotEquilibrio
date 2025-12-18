@@ -20,16 +20,17 @@ public class RobotManager {
     private final PhysicsEngine physics;
     private final World3D worldRef;
 
-    // Listas para control
     private final List<RigidBody> bodies = new ArrayList<>();
     private final List<TransformGizmo> gizmos = new ArrayList<>();
 
-    // Referencias al último creado
+    // 1. LISTA NUEVA PARA LAS CAJAS ROJAS
+    private final List<Node> debugShapes = new ArrayList<>(); // <--- NUEVO
+
     private RigidBody activeBody;
     private TransformGizmo activeGizmo;
 
-    // Variable para controlar si las flechas se ven o no (Por defecto: SI)
-    private boolean areGizmosVisible = true; // <--- NUEVO IMPORTANTE
+    private boolean areGizmosVisible = true;
+    private boolean areDebugVisible = true; // <--- NUEVO (Estado por defecto)
 
     public RobotManager(Group worldGroup, PhysicsEngine physics, World3D worldRef) {
         this.worldGroup = worldGroup;
@@ -37,7 +38,6 @@ public class RobotManager {
         this.worldRef = worldRef;
     }
 
-    // Método para importar CAD (.obj)
     public RigidBody spawnRobot(Group nuevoModelo) {
         Bounds bounds = nuevoModelo.getBoundsInParent();
         float realWidth = Math.max(1.0f, (float) bounds.getWidth());
@@ -45,6 +45,7 @@ public class RobotManager {
         float realDepth = Math.max(1.0f, (float) bounds.getDepth());
 
         Group robotActor = new Group();
+        // ... (código de centrado igual que antes) ...
         double centerX = bounds.getMinX() + (bounds.getWidth() / 2);
         double centerY = bounds.getMinY() + (bounds.getHeight() / 2);
         double centerZ = bounds.getMinZ() + (bounds.getDepth() / 2);
@@ -55,9 +56,10 @@ public class RobotManager {
         robotActor.getChildren().add(nuevoModelo);
         robotActor.setUserData(ShapeType.BOX);
 
+        // AQUÍ SE CREA LA CAJA ROJA
         createDebugBox(robotActor, realWidth, realHeight, realDepth);
 
-        // Posicionar
+        // ... (código de posicionamiento igual que antes) ...
         double randomX = (Math.random() * 20) - 10;
         double randomZ = (Math.random() * 20) - 10;
         double alturaSpawn = -50 - (realHeight / 2);
@@ -68,23 +70,19 @@ public class RobotManager {
 
         worldGroup.getChildren().add(robotActor);
 
-        // Física
         activeBody = physics.addBoxBody(robotActor, 10.0f, realWidth, realHeight, realDepth);
         bodies.add(activeBody);
 
-        // Gizmo
         activeGizmo = new TransformGizmo(robotActor, worldRef);
         worldGroup.getChildren().add(activeGizmo);
         gizmos.add(activeGizmo);
-
-        // APLICAR VISIBILIDAD ACTUAL AL NUEVO GIZMO
-        activeGizmo.setVisible(areGizmosVisible); // <--- NUEVO
+        activeGizmo.setVisible(areGizmosVisible);
 
         return activeBody;
     }
 
-    // Método para Primitivas
     public RigidBody spawnPrimitive(Group model, ShapeType type, double sizeDim1, double sizeDim2) {
+        // ... (código igual que antes) ...
         Group actor = new Group();
         actor.getChildren().add(model);
 
@@ -116,69 +114,29 @@ public class RobotManager {
         activeGizmo = new TransformGizmo(actor, worldRef);
         worldGroup.getChildren().add(activeGizmo);
         gizmos.add(activeGizmo);
-
-        // APLICAR VISIBILIDAD ACTUAL AL NUEVO GIZMO
-        activeGizmo.setVisible(areGizmosVisible); // <--- NUEVO
+        activeGizmo.setVisible(areGizmosVisible);
 
         return activeBody;
     }
 
-    public void clearScene() {
-        for (RigidBody b : bodies) {
-            physics.removeBody(b);
-        }
-        bodies.clear();
-        gizmos.clear();
-        activeBody = null;
-        activeGizmo = null;
-
-        while (worldGroup.getChildren().size() > 1) {
-            worldGroup.getChildren().remove(1);
-        }
-        System.out.println(">> Escena Limpiada Completamente");
-    }
-
-    public void resetAllPositions() {
-        for (RigidBody b : bodies) {
-            resetOneBody(b);
-        }
-        physics.updateGraphics();
-    }
-
-    private void resetOneBody(RigidBody b) {
-        if (b == null) return;
-        com.bulletphysics.linearmath.Transform t = new com.bulletphysics.linearmath.Transform();
-        t.setIdentity();
-        b.getWorldTransform(t);
-        t.origin.y = -80f;
-
-        b.setWorldTransform(t);
-        b.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
-        b.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
-        b.activate();
-    }
-
+    // 2. MODIFICAMOS ESTE MÉTODO PARA REGISTRAR LA CAJA
     private void createDebugBox(Group actor, float w, float h, float d) {
         Box debugBox = new Box(w, h, d);
         debugBox.setMaterial(new PhongMaterial(Color.RED));
         debugBox.setDrawMode(DrawMode.LINE);
         debugBox.setMouseTransparent(true);
+
         actor.getChildren().add(debugBox);
-    }
 
-    public TransformGizmo getLastGizmo() {
-        return activeGizmo;
-    }
-
-    public void updateAllGizmos() {
-        for (TransformGizmo g : gizmos) {
-            g.updatePosition();
-        }
+        // AÑADIR A LA LISTA Y APLICAR VISIBILIDAD
+        debugShapes.add(debugBox);     // <--- Guardar referencia
+        debugBox.setVisible(areDebugVisible); // <--- Aplicar estado actual
     }
 
     public void removeRobot(Node robotNode, RigidBody body) {
         bodies.remove(body);
 
+        // Limpiar Gizmos
         gizmos.removeIf(g -> {
             if (g.getTargetNode() == robotNode) {
                 worldGroup.getChildren().remove(g);
@@ -187,17 +145,59 @@ public class RobotManager {
             return false;
         });
 
+        // 3. LIMPIAR CAJAS ROJAS (Eliminamos de la lista si su padre es el nodo borrado)
+        debugShapes.removeIf(node -> node.getParent() == robotNode);
+
         physics.removeBody(body);
         worldGroup.getChildren().remove(robotNode);
         System.out.println("Objeto eliminado correctamente.");
     }
 
-    // Método llamado por el botón ToggleButton
+    public void clearScene() {
+        for (RigidBody b : bodies) physics.removeBody(b);
+        bodies.clear();
+        gizmos.clear();
+        debugShapes.clear(); // <--- Limpiar lista
+
+        activeBody = null;
+        activeGizmo = null;
+
+        while (worldGroup.getChildren().size() > 1) {
+            worldGroup.getChildren().remove(1);
+        }
+        System.out.println(">> Escena Limpiada");
+    }
+
+    // ... (resetAllPositions, getLastGizmo, updateAllGizmos, setGizmosVisible igual que antes) ...
+    public void resetAllPositions() {
+        for (RigidBody b : bodies) resetOneBody(b);
+        physics.updateGraphics();
+    }
+
+    private void resetOneBody(RigidBody b) { /* ... igual ... */
+        if (b == null) return;
+        com.bulletphysics.linearmath.Transform t = new com.bulletphysics.linearmath.Transform();
+        t.setIdentity();
+        b.getWorldTransform(t);
+        t.origin.y = -80f;
+        b.setWorldTransform(t);
+        b.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
+        b.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
+        b.activate();
+    }
+
+    public TransformGizmo getLastGizmo() { return activeGizmo; }
+    public void updateAllGizmos() { for (TransformGizmo g : gizmos) g.updatePosition(); }
     public void setGizmosVisible(boolean visible) {
         this.areGizmosVisible = visible;
-        // Recorrer todas las flechas existentes y cambiarlas
-        for (TransformGizmo g : gizmos) {
-            g.setVisible(visible);
+        for (TransformGizmo g : gizmos) g.setVisible(visible);
+    }
+
+    // 4. NUEVO MÉTODO PARA MOSTRAR/OCULTAR CAJAS ROJAS
+    public void setDebugVisible(boolean visible) {
+        this.areDebugVisible = visible;
+        for (Node box : debugShapes) {
+            box.setVisible(visible);
         }
     }
 }
