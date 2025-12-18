@@ -89,8 +89,10 @@
                 <javafx.scene.layout.Pane fx:id="selectionOverlay" pickOnBounds="false">
                     <children>
                         <javafx.scene.shape.Rectangle fx:id="selectionRect"
-                                                      fill="#1e90ff40"
-                                                      stroke="#1e90ff"
+                                                      fill="#ff00001a"
+                                                      stroke="#ff3333"
+                                                      strokeWidth="2.0"
+                                                      strokeDashArray="10.0, 5.0"
                                                       strokeType="INSIDE"
                                                       visible="false"
                                                       mouseTransparent="true" />

@@ -241,10 +241,20 @@ public class PhysicsEngine {
         // Forzar actualización de límites
         dynamicsWorld.updateSingleAabb(body);
     }
-    public RigidBody addCompoundBody(Node graphicsNode, float mass, List<CollisionShape> shapes, List<Transform> transforms) {
+    public RigidBody addCompoundBody(Node graphicsNode, float mass, java.util.List<com.bulletphysics.collision.shapes.CollisionShape> shapes, java.util.List<com.bulletphysics.linearmath.Transform> transforms) {
+        // Usamos el método antiguo del Factory que acepta listas
         RigidBody body = RigidBodyFactory.createCompoundBody(graphicsNode, mass, shapes, transforms);
         dynamicsWorld.addRigidBody(body);
         physicsToGraphicsMap.put(body, graphicsNode);
+        return body;
+    }
+    public RigidBody addCompoundBody(Node graphicsNode, float mass, com.bulletphysics.collision.shapes.CompoundShape shape) {
+        // Usamos el método buildBody (asegúrate de que sea 'public' en RigidBodyFactory)
+        RigidBody body = RigidBodyFactory.buildBody(graphicsNode, mass, shape);
+
+        dynamicsWorld.addRigidBody(body);
+        physicsToGraphicsMap.put(body, graphicsNode);
+
         return body;
     }
 }

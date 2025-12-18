@@ -78,7 +78,7 @@ public class RigidBodyFactory {
         return buildBody(graphicsNode, mass, shape);
     }
 
-    private static RigidBody buildBody(Node graphicsNode, float mass, CollisionShape shape) {
+    public static RigidBody buildBody(Node graphicsNode, float mass, CollisionShape shape) {
         shape.setMargin(0.001f);
         Vector3f localInertia = new Vector3f(0, 0, 0);
         if (mass > 0) shape.calculateLocalInertia(mass, localInertia);
