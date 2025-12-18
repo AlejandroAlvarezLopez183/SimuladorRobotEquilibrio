@@ -12,6 +12,8 @@ import com.bulletphysics.collision.shapes.CylinderShape;
 import com.bulletphysics.collision.shapes.ConvexHullShape;
 import com.bulletphysics.util.ObjectArrayList;
 
+import java.util.List;
+
 public class RigidBodyFactory {
 
     public static RigidBody createGround() {
@@ -115,5 +117,17 @@ public class RigidBodyFactory {
         shape.setMargin(0.04f); // Un margen pequeño ayuda a la estabilidad de colisión
 
         return buildBody(graphicsNode, mass, shape);
+    }
+    public static RigidBody createCompoundBody(Node graphicsGroup, float mass, List<CollisionShape> shapes, List<Transform> localTransforms) {
+        // 1. Crear el contenedor de formas
+        CompoundShape compoundShape = new CompoundShape();
+
+        // 2. Añadir cada forma hija con su posición relativa (offset)
+        for (int i = 0; i < shapes.size(); i++) {
+            compoundShape.addChildShape(localTransforms.get(i), shapes.get(i));
+        }
+
+        // 3. Construir el cuerpo rígido final
+        return buildBody(graphicsGroup, mass, compoundShape);
     }
 }

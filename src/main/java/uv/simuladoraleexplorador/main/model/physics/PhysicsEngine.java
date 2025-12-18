@@ -3,6 +3,7 @@ package uv.simuladoraleexplorador.main.model.physics;
 import com.bulletphysics.collision.broadphase.DbvtBroadphase;
 import com.bulletphysics.collision.dispatch.CollisionDispatcher;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
+import com.bulletphysics.collision.shapes.CollisionShape;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
@@ -12,6 +13,7 @@ import javax.vecmath.Quat4f;
 import javax.vecmath.Vector3f;
 import javax.vecmath.AxisAngle4f; // Importante para la rotación
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javafx.geometry.Point3D;
@@ -238,5 +240,11 @@ public class PhysicsEngine {
 
         // Forzar actualización de límites
         dynamicsWorld.updateSingleAabb(body);
+    }
+    public RigidBody addCompoundBody(Node graphicsNode, float mass, List<CollisionShape> shapes, List<Transform> transforms) {
+        RigidBody body = RigidBodyFactory.createCompoundBody(graphicsNode, mass, shapes, transforms);
+        dynamicsWorld.addRigidBody(body);
+        physicsToGraphicsMap.put(body, graphicsNode);
+        return body;
     }
 }

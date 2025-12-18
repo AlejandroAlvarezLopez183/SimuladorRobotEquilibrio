@@ -9,8 +9,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-
-<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ComboBox?> <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.TextField?>
@@ -19,7 +18,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.ToggleButton?>
-<BorderPane prefHeight="768.0" prefWidth="1024.0" stylesheets="@../styles/dark_theme.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="uv.simuladoraleexplorador.main.ui.MainController">
+<?import javafx.scene.shape.Rectangle?> <BorderPane prefHeight="768.0" prefWidth="1024.0" stylesheets="@../styles/dark_theme.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="uv.simuladoraleexplorador.main.ui.MainController">
 
     <top>
         <VBox BorderPane.alignment="CENTER">
@@ -48,6 +47,13 @@
 
                         <Separator orientation="VERTICAL" />
 
+                        <Label text="Snap:" textFill="#aaaaaa">
+                            <font><Font size="10.0"/></font>
+                        </Label>
+                        <ComboBox fx:id="cmbSnap" prefWidth="80.0" />
+
+                        <Separator orientation="VERTICAL" />
+
                         <Label text="Rotar 90°:" textFill="#aaaaaa" />
                         <Button mnemonicParsing="false" onAction="#handleRotarX" text="X" style="-fx-font-weight: bold; -fx-base: #444;" />
                         <Button mnemonicParsing="false" onAction="#handleRotarY" text="Y" style="-fx-font-weight: bold; -fx-base: #444;" />
@@ -58,11 +64,8 @@
                         <Button mnemonicParsing="false" onAction="#handleResetSim" text="Resetear Posición" />
 
                         <Button fx:id="btnDelete" mnemonicParsing="false" onAction="#handleDeleteSelected"
-                                prefWidth="200.0" text="ELIMINAR SELECCIONADO"
+                                prefWidth="200.0" text="ELIMINAR"
                                 style="-fx-base: #722; -fx-text-fill: white; -fx-font-weight: bold;">
-                            <VBox.margin>
-                                <Insets left="40.0" />
-                            </VBox.margin>
                         </Button>
 
                         <Separator orientation="VERTICAL" />
@@ -72,6 +75,8 @@
 
                         <ToggleButton fx:id="btnDebug" mnemonicParsing="false" selected="true"
                                       text="Ver Límites" onAction="#handleToggleDebug" />
+
+                        <Button text="UNIR (A+B)" onAction="#handleGroupObjects" style="-fx-base: #4a4;" />
                     </items>
                 </ToolBar>
             </children>
@@ -79,7 +84,20 @@
     </top>
 
     <center>
-        <StackPane fx:id="contentPane" styleClass="workspace-background" BorderPane.alignment="CENTER" />
+        <StackPane fx:id="contentPane" styleClass="workspace-background" BorderPane.alignment="CENTER">
+            <children>
+                <javafx.scene.layout.Pane fx:id="selectionOverlay" pickOnBounds="false">
+                    <children>
+                        <javafx.scene.shape.Rectangle fx:id="selectionRect"
+                                                      fill="#1e90ff40"
+                                                      stroke="#1e90ff"
+                                                      strokeType="INSIDE"
+                                                      visible="false"
+                                                      mouseTransparent="true" />
+                    </children>
+                </javafx.scene.layout.Pane>
+            </children>
+        </StackPane>
     </center>
 
     <right>
@@ -89,7 +107,6 @@
 
                 <Accordion>
                     <panes>
-
                         <TitledPane animated="true" text="Propiedades Físicas">
                             <content>
                                 <VBox spacing="10.0" style="-fx-background-color: #2b2b2b;">
@@ -118,11 +135,13 @@
                                     <children>
                                         <Label text="Posición Y (Altura):" textFill="#aaaaaa" />
                                         <Label fx:id="lblAltura" text="0.00 m" textFill="WHITE" />
+
+                                        <Label text="Rotación X" textFill="#aaaaaa" />
+                                        <Slider fx:id="sliderRotX" max="360" />
                                     </children>
                                 </VBox>
                             </content>
                         </TitledPane>
-
                     </panes>
                 </Accordion>
 
@@ -131,7 +150,8 @@
                 <VBox alignment="CENTER" spacing="5.0">
                     <children>
                         <Button onAction="#handleResetSim" prefHeight="40.0" prefWidth="200.0" style="-fx-base: #aa3333; -fx-font-weight: bold;" text="REINICIAR SIMULACIÓN" textFill="WHITE" />
-                        <Region prefHeight="20.0" /> </children>
+                        <Region prefHeight="20.0" />
+                    </children>
                 </VBox>
 
             </children>
