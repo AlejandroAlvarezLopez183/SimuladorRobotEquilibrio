@@ -66,8 +66,8 @@ public class PhysicsEngine {
     }
 
     public void stepSimulation(float deltaTime) {
-        // Optimización JBullet: maxSubSteps en 10 ayuda a mantener estabilidad si baja el FPS
-        dynamicsWorld.stepSimulation(deltaTime, 10);
+        dynamicsWorld.stepSimulation(deltaTime, 10, 1.0f / 60.0f);
+
         updateGraphics();
     }
 
@@ -256,5 +256,8 @@ public class PhysicsEngine {
         physicsToGraphicsMap.put(body, graphicsNode);
 
         return body;
+    }
+    public Map<RigidBody, Node> getPhysicsToGraphicsMap() {
+        return physicsToGraphicsMap;
     }
 }

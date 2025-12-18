@@ -25,7 +25,7 @@ public class ObjectEditorUI {
 
     public Node getCurrentNode() { return currentNode; }
     public RigidBody getCurrentBody() { return currentBody; }
-
+    private Box selectionBoxIndicator = null;
     // Estado actual
     private Node currentNode;
     private RigidBody currentBody;
@@ -68,30 +68,26 @@ public class ObjectEditorUI {
         return selectedNodeProperty;
     }
     private void applySelectionEffect(Node node) {
+        // 1. Limpiar indicador anterior
+        if (selectionBoxIndicator != null && selectionBoxIndicator.getParent() != null) {
+            ((Group)selectionBoxIndicator.getParent()).getChildren().remove(selectionBoxIndicator);
+            selectionBoxIndicator = null;
+        }
+
         if (node instanceof Group) {
-            // Buscamos la forma 3D dentro del grupo (Caja, Esfera, etc.)
-            // Reutilizamos tu método findShapeInGroup pero para cualquier Shape3D
-            Shape3D shape = findShapeInGroup(node, Shape3D.class);
-            if (shape != null && shape.getMaterial() instanceof PhongMaterial) {
-                lastShape = shape;
-                PhongMaterial originalMat = (PhongMaterial) shape.getMaterial();
+            Group group = (Group) node;
 
-                // Guardamos una copia para restaurar luego
-                lastMaterial = originalMat;
+            // 2. Calcular tamaño visual (Bounds)
+            javafx.geometry.Bounds b = group.getBoundsInLocal();
 
-                // Creamos un material de "Selección" (Brillo cian/azul)
-                PhongMaterial selectionMat = new PhongMaterial();
-                selectionMat.setDiffuseColor(originalMat.getDiffuseColor());
-                selectionMat.setSpecularColor(Color.CYAN);
-                // El truco del brillo:
-                selectionMat.setSelfIlluminationMap(null); // Opcional: podrías usar un mapa
-                selectionMat.setSpecularPower(10.0);
+            // 3. Crear caja de alambre (Wireframe)
+            selectionBoxIndicator = new Box(b.getWidth() + 0.2, b.getHeight() + 0.2, b.getDepth() + 0.2);
+            selectionBoxIndicator.setDrawMode(javafx.scene.shape.DrawMode.LINE); // Solo líneas
+            selectionBoxIndicator.setMaterial(new PhongMaterial(Color.CYAN));
+            selectionBoxIndicator.setMouseTransparent(true); // Para no interferir con clics
 
-                // Alternativa simple: darle un color de emisión
-                // shape.setEffect(new javafx.scene.effect.Glow(0.5)); // Glow es para 2D, mejor material:
-
-                shape.setMaterial(selectionMat);
-            }
+            // 4. Añadir como hijo del objeto seleccionado
+            group.getChildren().add(selectionBoxIndicator);
         }
     }
 

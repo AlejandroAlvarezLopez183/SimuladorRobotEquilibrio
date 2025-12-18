@@ -1,4 +1,5 @@
 package uv.simuladoraleexplorador.main.ui.view3d;
+import com.bulletphysics.dynamics.RigidBody;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Bounds;
 import javafx.scene.shape.DrawMode;
@@ -13,6 +14,8 @@ import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import uv.simuladoraleexplorador.main.model.physics.PhysicsEngine;
+
+import java.util.Map;
 
 public class World3D {
 
@@ -94,6 +97,8 @@ public class World3D {
     private void startSimulationLoop() {
         simulationLoop = new AnimationTimer() {
             long lastTime = 0;
+            // Variable temporal para no crear basura en cada frame
+            com.bulletphysics.linearmath.Transform tempT = new com.bulletphysics.linearmath.Transform();
 
             @Override
             public void handle(long now) {
@@ -102,9 +107,35 @@ public class World3D {
                 lastTime = now;
 
                 if (isSimulating && physics != null) {
+                    // Paso 1: Simulación Física
                     physics.stepSimulation(timeStep);
+
+                    // Paso 2: Kill Floor (Optimización)
+                    // Iteramos sobre los cuerpos para ver si alguno cayó al vacío
+                    for (com.bulletphysics.dynamics.RigidBody body : physics.getPhysicsToGraphicsMap().keySet()) {
+
+                        // Obtenemos la posición física real
+                        body.getMotionState().getWorldTransform(tempT);
+
+                        // Si la altura (Y) es menor a -200 (cayó muy abajo)
+                        if (tempT.origin.y < -200) {
+                            // Opción A: Congelarlo para ahorrar CPU
+                            body.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
+                            body.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
+                            body.forceActivationState(com.bulletphysics.dynamics.RigidBody.WANTS_DEACTIVATION);
+
+                            // Opción B (Opcional): Si prefieres resetearlo al cielo descomenta esto:
+                            /*
+                            tempT.setIdentity();
+                            tempT.origin.set(0, 50, 0); // Al cielo
+                            body.setWorldTransform(tempT);
+                            body.activate();
+                            */
+                        }
+                    }
                 }
-                // El Gizmo sí debe actualizarse siempre para que siga al mouse
+
+                // El Gizmo debe actualizarse siempre, incluso en pausa
                 if (robotManager != null) {
                     robotManager.updateAllGizmos();
                 }
@@ -169,4 +200,5 @@ public class World3D {
     public double getCameraAngleY() {
         return rotateY.getAngle();
     }
+
 }
