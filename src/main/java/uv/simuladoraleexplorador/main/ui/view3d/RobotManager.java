@@ -3,11 +3,14 @@ package uv.simuladoraleexplorador.main.ui.view3d;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import com.bulletphysics.dynamics.RigidBody;
+import uv.simuladoraleexplorador.main.model.components.ElectronicComponent;
 import uv.simuladoraleexplorador.main.model.physics.PhysicsEngine;
 import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotGrouper;
 import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotRegistry;
 import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotSpawner;
+import uv.simuladoraleexplorador.main.utils.ObjLoader;
 
+import java.io.File;
 import java.util.List;
 
 public class RobotManager {
@@ -127,5 +130,66 @@ public class RobotManager {
         for (TransformGizmo g : registry.getGizmos()) {
             g.updatePosition();
         }
+    }
+    public void spawnComponent(ElectronicComponent component) {
+        Group visualModel;
+        String path = component.getModelPath();
+        File file = new File(path);
+
+        // 1. Cargar Modelo (igual que antes)
+        if (file.exists() && file.isFile() && path.toLowerCase().endsWith(".obj")) {
+            try {
+                visualModel = ObjLoader.loadModel(file);
+            } catch (Exception e) {
+                visualModel = createPlaceholder(component);
+            }
+        } else {
+            visualModel = createPlaceholder(component);
+        }
+
+        visualModel.setUserData(component);
+
+        // 2. Instanciar Físicamente (Esto crea el RigidBody con masa por defecto)
+        com.bulletphysics.dynamics.RigidBody body = spawner.spawnImported(visualModel);
+
+        if (body != null) {
+            float mass = (float) component.getMass();
+
+            // --- LÓGICA SIMPLIFICADA "ESTILO ARCADE" ---
+            // Esto garantiza que lo pesado NUNCA sea más lento que lo ligero.
+
+            float airResistance;
+
+            if (mass >= 1.0f) {
+                // PESADOS: Caen como piedra (Sin freno)
+                airResistance = 0.0f;
+            } else if (mass >= 0.1f) {
+                // MEDIANOS: Caen normal (Freno leve)
+                airResistance = 0.1f;
+            } else {
+                // LIGEROS: Caen como papel (Mucho freno)
+                airResistance = 0.8f;
+            }
+
+            // Aplicamos cambios
+            physics.updateBodyProperties(body, mass, airResistance);
+
+            // Forzar activación para asegurar que JBullet despierte al objeto
+            body.activate(true);
+
+            System.out.println("Spawned: " + component.getName()
+                    + " | Masa: " + mass
+                    + " | Freno: " + airResistance);
+        }
+
+        refreshVisuals();
+    }
+
+    // Un ayudante para crear una caja visual si no hay modelo 3D
+    private Group createPlaceholder(ElectronicComponent comp) {
+        // Creamos un cubo pequeño (5 unidades)
+        Group cube = PrimitiveFactory.createCube(5);
+        // Podrías cambiarle el color según el tipo (Motor=Rojo, Sensor=Azul) si quisieras
+        return cube;
     }
 }

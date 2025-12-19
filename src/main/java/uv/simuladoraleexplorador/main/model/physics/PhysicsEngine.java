@@ -126,19 +126,23 @@ public class PhysicsEngine {
     public void updateBodyProperties(RigidBody body, float newMass, float newDamping) {
         if (body == null) return;
 
-        // 1. Calcular nueva inercia (si cambia el peso, cambia cómo se mueve)
+        // 1. Limpiar fuerzas viejas (Vital para evitar comportamientos raros al cambiar masa)
+        body.clearForces();
+        body.setLinearVelocity(new Vector3f(0,0,0)); // Opcional: Resetear velocidad si quieres que empiece de 0
+
+        // 2. Calcular inercia nueva
         javax.vecmath.Vector3f localInertia = new javax.vecmath.Vector3f(0, 0, 0);
         if (newMass > 0) {
             body.getCollisionShape().calculateLocalInertia(newMass, localInertia);
         }
-        // 2. Aplicar cambios al motor físico
-        body.setMassProps(newMass, localInertia);
-        // Damping = Resistencia al aire (0.0 = vacío, 1.0 = melaza)
-        // El segundo parámetro es damping angular (giro), lo dejamos en 0.5 por defecto
-        body.setDamping(newDamping, 0.5f);
 
-        body.updateInertiaTensor(); // Recalcular matemáticas internas
-        body.activate();
+        // 3. Aplicar
+        body.setMassProps(newMass, localInertia);
+        body.setDamping(newDamping, 0.5f); // 0.5 angular para que no giren como locos
+        body.updateInertiaTensor();
+
+        // 4. ¡DESPERTAR!
+        body.activate(true);
     }
     public RigidBody addSphereBody(Node graphicsNode, float mass, float radius) {
         RigidBody body = RigidBodyFactory.createSphere(graphicsNode, mass, radius);

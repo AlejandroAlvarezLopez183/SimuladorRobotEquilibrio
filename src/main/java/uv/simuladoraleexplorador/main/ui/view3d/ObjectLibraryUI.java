@@ -50,7 +50,18 @@ public class ObjectLibraryUI {
 
         // Configuramos la lista para que se vea bien
         componentsList.setPrefHeight(150);
-        componentsList.setStyle("-fx-background-color: #333;");
+        componentsList.setStyle("-fx-background-color: #333; -fx-control-inner-background: #333; -fx-text-fill: white;");
+
+        componentsList.setOnMouseClicked(event -> {
+            // Detectar doble clic (ClickCount == 2)
+            if (event.getClickCount() == 2) {
+                ElectronicComponent selected = componentsList.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    // ¡Llamamos al método que acabamos de crear!
+                    robotManager.spawnComponent(selected);
+                }
+            }
+        });
 
         container.getChildren().addAll(title, btnCube, btnSphere, btnCylinder, btnRamp);
         container.getChildren().addAll(lblComp, btnNewComp, componentsList);
@@ -74,10 +85,13 @@ public class ObjectLibraryUI {
         java.util.Optional<ElectronicComponent> result = dialog.showAndWait();
 
         result.ifPresent(component -> {
-            System.out.println("Nuevo componente creado: " + component.toString());
+            System.out.println("Nuevo componente: " + component.getName());
+            System.out.println("Tipo: " + component.getType());
+            // VERIFICACIÓN:
+            System.out.println("Ruta 3D: " + component.getModelPath());
             System.out.println("Specs: " + component.getSpecs());
 
-            // Agregamos a la lista visual (Simulando la BD)
             componentsList.getItems().add(component);
         });
+
     }}
