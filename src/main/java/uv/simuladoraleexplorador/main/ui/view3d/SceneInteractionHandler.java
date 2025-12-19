@@ -6,9 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Rectangle;
-import uv.simuladoraleexplorador.main.ui.MainController; // O una interfaz si prefieres desacoplar más
 import com.bulletphysics.dynamics.RigidBody;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,34 +17,25 @@ public class SceneInteractionHandler {
     private final Rectangle selectionRect;
     private final ComboBox<Double> cmbSnap;
 
-    // Estados internos
     private double lastMouseX, lastMouseY;
     private double startSelX, startSelY;
     private boolean isDraggingObject = false;
     private boolean isBoxSelecting = false;
 
-    // Listas de selección
     private final List<Node> multiSelection = new ArrayList<>();
-
-    // Referencias para agrupación temporal (A -> B)
-    private Node nodeA, nodeB;
-    private RigidBody bodyA, bodyB;
 
     public SceneInteractionHandler(World3D world3D, ObjectEditorUI objectEditor, Rectangle selectionRect, ComboBox<Double> cmbSnap) {
         this.world3D = world3D;
         this.objectEditor = objectEditor;
         this.selectionRect = selectionRect;
         this.cmbSnap = cmbSnap;
-
         initEvents();
     }
 
     private void initEvents() {
-        world3D.getSubScene().addEventHandler(MouseEvent.ANY, event -> {
-            if (event.getEventType() == MouseEvent.MOUSE_PRESSED) handlePressed(event);
-            else if (event.getEventType() == MouseEvent.MOUSE_DRAGGED) handleDragged(event);
-            else if (event.getEventType() == MouseEvent.MOUSE_RELEASED) handleReleased(event);
-        });
+        world3D.getSubScene().addEventHandler(MouseEvent.MOUSE_PRESSED, this::handlePressed);
+        world3D.getSubScene().addEventHandler(MouseEvent.MOUSE_DRAGGED, this::handleDragged);
+        world3D.getSubScene().addEventHandler(MouseEvent.MOUSE_RELEASED, this::handleReleased);
     }
 
     private void handlePressed(MouseEvent event) {
@@ -65,35 +54,49 @@ public class SceneInteractionHandler {
             return;
         }
 
-        // 2. OBJETO
+        // 2. OBJETO (Ahora soporta GRUPOS)
         if (rootObj != null) {
             isDraggingObject = true;
             isBoxSelecting = false;
 
             RigidBody body = world3D.getPhysicsEngine().getBodyFromGraphic(rootObj);
-            Object typeObj = rootObj.getUserData();
+            Object userData = rootObj.getUserData();
 
-            if (body != null && typeObj instanceof RobotManager.ShapeType) {
-                // Lógica A/B
-                nodeA = nodeB; bodyA = bodyB;
-                nodeB = rootObj; bodyB = body;
+            if (body != null) {
+                // --- CORRECCIÓN AQUÍ ---
+                // Determinar el tipo de forma de manera segura
+                RobotManager.ShapeType shapeType = null;
 
-                objectEditor.setSelectedObject(rootObj, body, (RobotManager.ShapeType) typeObj);
+                if (userData instanceof RobotManager.ShapeType) {
+                    shapeType = (RobotManager.ShapeType) userData;
+                } else if ("GRUPO".equals(userData)) {
+                    // Si es un grupo, pasamos null o BOX como dummy,
+                    // ya que ObjectEditorUI ahora detecta "GRUPO" por su cuenta.
+                    shapeType = RobotManager.ShapeType.BOX;
+                }
 
+                objectEditor.setSelectedObject(rootObj, body, shapeType);
+
+                // Multiselección
                 if (!event.isControlDown()) {
                     multiSelection.clear();
                     multiSelection.add(rootObj);
-                } else {
-                    if (!multiSelection.contains(rootObj)) multiSelection.add(rootObj);
+                } else if (!multiSelection.contains(rootObj)) {
+                    multiSelection.add(rootObj);
                 }
+
+                // Pausar física al agarrar
+                body.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
+                body.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
+                body.activate();
             }
+            event.consume();
         }
         // 3. VACÍO (Caja de Selección)
         else {
             isDraggingObject = false;
             isBoxSelecting = true;
 
-            // Coordenadas locales al contenedor del rectángulo
             Point2D localPoint = selectionRect.getParent().sceneToLocal(event.getSceneX(), event.getSceneY());
             startSelX = localPoint.getX();
             startSelY = localPoint.getY();
@@ -102,7 +105,6 @@ public class SceneInteractionHandler {
 
             if (!event.isControlDown()) {
                 objectEditor.setSelectedObject(null, null, null);
-                nodeA = null; nodeB = null;
                 multiSelection.clear();
             }
         }
@@ -124,25 +126,26 @@ public class SceneInteractionHandler {
             selectionRect.setVisible(false);
             isBoxSelecting = false;
         }
+        if (isDraggingObject) {
+            RigidBody body = objectEditor.getCurrentBody();
+            if(body != null) body.activate();
+        }
         isDraggingObject = false;
     }
 
-    // --- LÓGICA DE MOVIMIENTO (SNAP) ---
     private void moveSelectedObject(MouseEvent event) {
         Node selectedNode = objectEditor.getCurrentNode();
         if (selectedNode == null) return;
 
-        double mouseDy = event.getSceneY() - lastMouseY;
         double mouseDx = event.getSceneX() - lastMouseX;
+        double mouseDy = event.getSceneY() - lastMouseY;
 
-        // --- NUEVO: DETECCIÓN DE EJE VERTICAL ---
+        // Movimiento Vertical con SHIFT (La mejora que te sugerí antes)
         if (event.isShiftDown()) {
-            // Si presiona SHIFT, movemos en Y (Arriba/Abajo)
-            // Invertimos Dy porque en pantalla Y crece hacia abajo
             double moveY = -mouseDy * 0.1;
             selectedNode.setTranslateY(selectedNode.getTranslateY() + moveY);
         } else {
-            // --- COMPORTAMIENTO ORIGINAL (Plano X/Z) ---
+            // Movimiento Horizontal Normal
             double camAngle = Math.toRadians(world3D.getCameraAngleY());
             double sens = 0.5;
 
@@ -152,29 +155,30 @@ public class SceneInteractionHandler {
             double rawX = selectedNode.getTranslateX() + (moveX * sens);
             double rawZ = selectedNode.getTranslateZ() + (moveZ * sens);
 
-            // (Aquí va tu código de Snap existente...)
+            Double snap = (cmbSnap != null) ? cmbSnap.getValue() : null;
+            if (snap != null && snap > 0.0) {
+                rawX = Math.round(rawX / snap) * snap;
+                rawZ = Math.round(rawZ / snap) * snap;
+            }
+
             selectedNode.setTranslateX(rawX);
             selectedNode.setTranslateZ(rawZ);
         }
 
-        // Actualizar física
         world3D.notifyObjectMovedManually(selectedNode);
 
         lastMouseX = event.getSceneX();
         lastMouseY = event.getSceneY();
     }
 
-    // --- LÓGICA DE CAJA ---
     private void updateSelectionBox(MouseEvent event) {
         Point2D currentLocal = selectionRect.getParent().sceneToLocal(event.getSceneX(), event.getSceneY());
         double currentX = currentLocal.getX();
         double currentY = currentLocal.getY();
-
         double x = Math.min(startSelX, currentX);
         double y = Math.min(startSelY, currentY);
         double w = Math.abs(currentX - startSelX);
         double h = Math.abs(currentY - startSelY);
-
         setupRect(x, y, w, h, true);
     }
 
@@ -188,7 +192,6 @@ public class SceneInteractionHandler {
         List<Node> candidates = world3D.getRobotManager().getTrackedNodes();
         Bounds rectBounds = selectionRect.localToScene(selectionRect.getBoundsInLocal());
 
-        boolean foundAny = false;
         for (Node node : candidates) {
             javafx.geometry.Point3D posInScene3D = node.localToScene(0, 0, 0);
             javafx.geometry.Point3D posInScreen = world3D.getSubScene().localToScene(posInScene3D);
@@ -196,22 +199,38 @@ public class SceneInteractionHandler {
             if (rectBounds.contains(posInScreen.getX(), posInScreen.getY())) {
                 if (!multiSelection.contains(node)) {
                     multiSelection.add(node);
-                    foundAny = true;
                 }
             }
         }
 
-        if (foundAny) {
+        if (!multiSelection.isEmpty()) {
             Node last = multiSelection.get(multiSelection.size() - 1);
             RigidBody b = world3D.getPhysicsEngine().getBodyFromGraphic(last);
-            Object t = last.getUserData();
-            if (b != null && t instanceof RobotManager.ShapeType) {
-                objectEditor.setSelectedObject(last, b, (RobotManager.ShapeType) t);
+            Object userData = last.getUserData();
+
+            // Lógica corregida también para selección de caja
+            RobotManager.ShapeType type = RobotManager.ShapeType.BOX;
+            if (userData instanceof RobotManager.ShapeType) type = (RobotManager.ShapeType) userData;
+
+            if (b != null) {
+                objectEditor.setSelectedObject(last, b, type);
             }
         }
     }
 
-    // --- UTILIDADES ---
+    // --- CORRECCIÓN CLAVE EN ESTE MÉTODO ---
+    private Node findRootObject(Node node) {
+        while (node != null) {
+            Object data = node.getUserData();
+            // AHORA ACEPTAMOS 'GRUPO' COMO VÁLIDO
+            if (data instanceof RobotManager.ShapeType || "GRUPO".equals(data)) {
+                return node;
+            }
+            node = node.getParent();
+        }
+        return null;
+    }
+
     private boolean isGizmoPart(Node node) {
         while (node != null) {
             if (node instanceof TransformGizmo) return true;
@@ -220,22 +239,7 @@ public class SceneInteractionHandler {
         return false;
     }
 
-    private Node findRootObject(Node node) {
-        while (node != null) {
-            if (node.getUserData() instanceof RobotManager.ShapeType) return node;
-            node = node.getParent();
-        }
-        return null;
-    }
-
-    // Getters para que el Controller acceda a la selección
+    // Getters
     public List<Node> getMultiSelection() { return multiSelection; }
-    public Node getNodeA() { return nodeA; }
-    public Node getNodeB() { return nodeB; }
-    public RigidBody getBodyA() { return bodyA; }
-    public RigidBody getBodyB() { return bodyB; }
-    public void clearSelection() {
-        multiSelection.clear();
-        nodeA = null; nodeB = null;
-    }
+    public void clearSelection() { multiSelection.clear(); }
 }

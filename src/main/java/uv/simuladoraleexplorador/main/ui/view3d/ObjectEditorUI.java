@@ -21,8 +21,9 @@ import uv.simuladoraleexplorador.main.model.physics.PhysicsEngine;
 public class ObjectEditorUI {
 
     private final VBox container;
+    private Node currentSelectionBox = null;
     private final PhysicsEngine physics;
-
+    private Slider sldWidth, sldHeight, sldDepth;
     public Node getCurrentNode() { return currentNode; }
     public RigidBody getCurrentBody() { return currentBody; }
     private Box selectionBoxIndicator = null;
@@ -51,55 +52,56 @@ public class ObjectEditorUI {
         return pane;
     }
 
-    public void setSelectedObject(Node node, RigidBody body, RobotManager.ShapeType type) {
-        // 1. Restaurar el objeto anterior si existía
-        restorePreviousEffect();
-
-        this.currentNode = node;
-        this.currentBody = body;
-        this.currentType = type;
-        selectedNodeProperty.set(node);
-
-        applySelectionEffect(node);
-
-        refreshUI();
-    }
     public ObjectProperty<Node> selectedNodeProperty() {
         return selectedNodeProperty;
     }
     private void applySelectionEffect(Node node) {
-        // 1. Limpiar indicador anterior
-        if (selectionBoxIndicator != null && selectionBoxIndicator.getParent() != null) {
-            ((Group)selectionBoxIndicator.getParent()).getChildren().remove(selectionBoxIndicator);
-            selectionBoxIndicator = null;
-        }
+        // 1. Limpiar la caja anterior si existe
+        removeSelectionEffect();
 
         if (node instanceof Group) {
             Group group = (Group) node;
 
-            // 2. Calcular tamaño visual (Bounds)
+            // 2. Calcular el tamaño del objeto seleccionado
             javafx.geometry.Bounds b = group.getBoundsInLocal();
 
-            // 3. Crear caja de alambre (Wireframe)
-            selectionBoxIndicator = new Box(b.getWidth() + 0.2, b.getHeight() + 0.2, b.getDepth() + 0.2);
-            selectionBoxIndicator.setDrawMode(javafx.scene.shape.DrawMode.LINE); // Solo líneas
-            selectionBoxIndicator.setMaterial(new PhongMaterial(Color.CYAN));
-            selectionBoxIndicator.setMouseTransparent(true); // Para no interferir con clics
+            // 3. Crear una caja ligeramente más grande
+            double padding = 0.2;
+            Box wireBox = new Box(b.getWidth() + padding, b.getHeight() + padding, b.getDepth() + padding);
 
-            // 4. Añadir como hijo del objeto seleccionado
-            group.getChildren().add(selectionBoxIndicator);
+            // 4. Estilo "Wireframe" (Solo líneas)
+            wireBox.setDrawMode(javafx.scene.shape.DrawMode.LINE);
+            wireBox.setMaterial(new PhongMaterial(Color.CYAN));
+            wireBox.setMouseTransparent(true); // ¡Importante! Para que los clics la atraviesen
+
+            // 5. Agregarla al grupo del objeto
+            group.getChildren().add(wireBox);
+            currentSelectionBox = wireBox;
         }
     }
 
     private void refreshUI() {
         container.getChildren().clear();
 
-        if (currentNode == null || currentType == null) {
+        if (currentNode == null) {
             container.getChildren().add(new Label("Nada seleccionado"));
             return;
         }
 
-        // Switch para decidir qué controles mostrar
+        // --- CORRECCIÓN LÓGICA ---
+        // Detectar si es un Grupo Compuesto
+        boolean esGrupo = "GRUPO".equals(currentNode.getUserData()) ||
+                (currentNode instanceof Group && ((Group)currentNode).getChildren().size() > 1);
+
+        if (esGrupo) {
+            // Si es un grupo, mostramos ESCALA GLOBAL
+            buildScalingControls("Grupo de Objetos");
+            return; // ¡Importante! Salimos aquí para no dibujar los controles de Caja/Esfera
+        }
+
+        // Si no es grupo, seguimos con la lógica normal...
+        if (currentType == null) return;
+
         switch (currentType) {
             case BOX:
                 buildBoxControls();
@@ -110,11 +112,8 @@ public class ObjectEditorUI {
             case CYLINDER:
                 buildCylinderControls();
                 break;
-            case RAMP: // ¡AHORA SÍ SOPORTAMOS LA RAMPA!
-                buildRampControls();
-                break;
-            default:
-                container.getChildren().add(new Label("Objeto no editable."));
+            case RAMP:
+                buildScalingControls("Rampa"); // La rampa usa escala
                 break;
         }
     }
@@ -122,29 +121,30 @@ public class ObjectEditorUI {
     // --- PANELES ESPECÍFICOS ---
 
     private void buildBoxControls() {
-        // Buscamos la forma visual exacta (La caja naranja, no la roja de debug)
         Box boxGraphic = findShapeInGroup(currentNode, Box.class);
 
         if (boxGraphic != null && isNotDebugBox(boxGraphic)) {
-            // ES UN CUBO NATIVO (Tiene forma Box visual)
             addSlider("Ancho (X)", 1, 50, boxGraphic.getWidth(), val -> {
                 boxGraphic.setWidth(val);
                 physics.resizeBoxBody(currentBody, (float)val, (float)boxGraphic.getHeight(), (float)boxGraphic.getDepth());
+                preventFloorPenetration(); // <--- AGREGAR
             });
+
             addSlider("Alto (Y)", 1, 50, boxGraphic.getHeight(), val -> {
                 boxGraphic.setHeight(val);
                 physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)val, (float)boxGraphic.getDepth());
+                preventFloorPenetration(); // <--- AGREGAR (Vital para altura)
             });
+
             addSlider("Profundidad (Z)", 1, 50, boxGraphic.getDepth(), val -> {
                 boxGraphic.setDepth(val);
                 physics.resizeBoxBody(currentBody, (float)boxGraphic.getWidth(), (float)boxGraphic.getHeight(), (float)val);
+                preventFloorPenetration(); // <--- AGREGAR
             });
         } else {
-            // ES UN OBJETO IMPORTADO (Mesa, Silla...) -> Usamos Escala
             buildScalingControls("Objeto Importado");
         }
     }
-
     private void buildSphereControls() {
         // Búsqueda recursiva encuentra la esfera aunque esté muy anidada
         Sphere sphereGraphic = findShapeInGroup(currentNode, Sphere.class);
@@ -181,25 +181,38 @@ public class ObjectEditorUI {
         buildScalingControls("Rampa (Escala)");
     }
 
-    // --- REUTILIZABLE: Controles de Escala (X, Y, Z) ---
-    // Sirve para Rampa y Objetos Importados
     private void buildScalingControls(String labelTitle) {
-        // Importante: Usamos la escala del NODO PADRE (currentNode)
-        // Esto escala todo: el gráfico visual y le decimos a físicas que escale la colisión.
+        // Guardamos la referencia para no buscarla mil veces
+        RigidBody body = currentBody;
+        Node node = currentNode;
 
-        addSlider("Escala X (Ancho)", 0.1, 5.0, currentNode.getScaleX(), val -> {
-            currentNode.setScaleX(val);
-            physics.updateBodyScale(currentBody, (float)val, (float)currentNode.getScaleY(), (float)currentNode.getScaleZ());
+        addSlider("Escala X (Ancho)", 0.1, 5.0, node.getScaleX(), val -> {
+            node.setScaleX(val);
+            updatePhysicsAndVisuals(node, body);
         });
 
-        addSlider("Escala Y (Alto)", 0.1, 5.0, currentNode.getScaleY(), val -> {
-            currentNode.setScaleY(val);
-            physics.updateBodyScale(currentBody, (float)currentNode.getScaleX(), (float)val, (float)currentNode.getScaleZ());
+        addSlider("Escala Y (Alto)", 0.1, 5.0, node.getScaleY(), val -> {
+            // 1. Guardamos dónde están los pies ANTES de escalar
+            double oldBottomY = node.getBoundsInParent().getMaxY();
+
+            // 2. Aplicamos la escala
+            node.setScaleY(val);
+
+            // 3. Calculamos dónde quedaron los pies AHORA
+            double newBottomY = node.getBoundsInParent().getMaxY();
+
+            // 4. La diferencia es lo que se enterró en el suelo
+            double difference = newBottomY - oldBottomY;
+
+            // 5. Lo subimos esa diferencia exacta para que parezca que crece hacia arriba
+            node.setTranslateY(node.getTranslateY() - difference);
+
+            updatePhysicsAndVisuals(node, body);
         });
 
-        addSlider("Escala Z (Largo)", 0.1, 5.0, currentNode.getScaleZ(), val -> {
-            currentNode.setScaleZ(val);
-            physics.updateBodyScale(currentBody, (float)currentNode.getScaleX(), (float)currentNode.getScaleY(), (float)val);
+        addSlider("Escala Z (Largo)", 0.1, 5.0, node.getScaleZ(), val -> {
+            node.setScaleZ(val);
+            updatePhysicsAndVisuals(node, body);
         });
 
         Label lbl = new Label("(" + labelTitle + ")");
@@ -207,6 +220,20 @@ public class ObjectEditorUI {
         container.getChildren().add(lbl);
     }
 
+    // Un método auxiliar para no repetir código y mantener todo sincronizado
+    private void updatePhysicsAndVisuals(Node node, RigidBody body) {
+        // 1. Actualizar Física
+        physics.updateBodyScale(body, (float)node.getScaleX(), (float)node.getScaleY(), (float)node.getScaleZ());
+
+        // 2. "Planchar" al suelo si por error flotante decimal quedó un poco abajo
+        preventFloorPenetration();
+
+        // 3. Actualizar la posición física basada en la nueva posición visual corregida
+        physics.updatePhysicsFromGraphicPosition(node);
+
+        // 4. ¡IMPORTANTE! Redibujar la caja azul para que se ajuste al nuevo tamaño
+        updateSelectionBox();
+    }
     // --- UTILIDADES ---
 
     private void addSlider(String name, double min, double max, double current, java.util.function.DoubleConsumer action) {
@@ -238,12 +265,53 @@ public class ObjectEditorUI {
         // Las cajas de debug son transparentes al mouse o DrawMode.LINE
         return !box.isMouseTransparent();
     }
-
     private void restorePreviousEffect() {
-        if (lastShape != null && lastMaterial != null) {
-            lastShape.setMaterial(lastMaterial);
-            lastShape = null;
-            lastMaterial = null;
+        // Método renombrado internamente a removeSelectionEffect para claridad,
+        // pero puedes mantener el nombre si lo llamas desde otros lados.
+        removeSelectionEffect();
+    }
+
+    private void removeSelectionEffect() {
+        if (currentSelectionBox != null) {
+            Group parent = (Group) currentSelectionBox.getParent();
+            if (parent != null) {
+                parent.getChildren().remove(currentSelectionBox);
+            }
+            currentSelectionBox = null;
+        }
+    }
+
+    // Y en setSelectedObject, asegúrate de llamar a removeSelectionEffect() al inicio
+    public void setSelectedObject(Node node, RigidBody body, RobotManager.ShapeType type) {
+        removeSelectionEffect(); // <--- LIMPIEZA PRIMERO
+
+        this.currentNode = node;
+        this.currentBody = body;
+        this.currentType = type;
+        selectedNodeProperty.set(node);
+
+        if (node != null) {
+            applySelectionEffect(node);
+        }
+        refreshUI();
+    }
+
+    
+    private void updateSelectionBox() {
+        if (currentNode != null) {
+            applySelectionEffect(currentNode);
+        }
+    }
+    private void preventFloorPenetration() {
+        if (currentNode == null) return;
+
+        javafx.geometry.Bounds b = currentNode.getBoundsInParent();
+
+        // El suelo físico está en 0.0. Usamos un margen de error pequeñito (0.01)
+        if (b.getMaxY() > 0.01) {
+            double penetration = b.getMaxY();
+            // Subimos el objeto
+            currentNode.setTranslateY(currentNode.getTranslateY() - penetration);
         }
     }
 }

@@ -92,6 +92,7 @@ public class MainController {
         // 4. INICIALIZAR EL MANEJADOR DE INTERACCIÓN (Aquí delegamos el trabajo sucio)
         // Le pasamos todo lo que necesita para trabajar
         interactionHandler = new SceneInteractionHandler(world3D, objectEditor, selectionRect, cmbSnap);
+        initKeyboardShortcuts();
     }
 
     public void iniciarSistema(Stage stage) {
@@ -297,5 +298,39 @@ public class MainController {
         if (world3D != null) {
             world3D.getRobotManager().setDebugVisible(btnDebug.isSelected());
         }
+    }
+    private void initKeyboardShortcuts() {
+        // El StackPane principal escuchará las teclas
+        contentPane.setFocusTraversable(true); // Necesario para recibir teclas
+
+        contentPane.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case G:
+                    // CTRL + G para AGRUPAR
+                    if (event.isControlDown()) {
+                        handleGroupObjects();
+                        System.out.println("Atajo: Agrupar");
+                    }
+                    break;
+
+                case U:
+                    // CTRL + U para DESAGRUPAR (Ungroup)
+                    if (event.isControlDown()) {
+                        handleUngroupObjects();
+                        System.out.println("Atajo: Desagrupar");
+                    }
+                    break;
+
+                case DELETE:
+                    // Tecla SUPR para BORRAR
+                    handleDeleteSelected();
+                    System.out.println("Atajo: Eliminar");
+                    break;
+            }
+        });
+
+        // Truco: Cuando hacemos clic en la vista 3D, le devolvemos el foco al panel
+        // para que sigan funcionando las teclas.
+        contentPane.setOnMousePressed(e -> contentPane.requestFocus());
     }
 }

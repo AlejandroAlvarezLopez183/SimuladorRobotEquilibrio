@@ -2,7 +2,6 @@ package uv.simuladoraleexplorador.main.ui.view3d.robot;
 
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.geometry.Point3D;
 import javafx.scene.shape.Box;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.collision.shapes.CompoundShape;
@@ -33,21 +32,39 @@ public class RobotGrouper {
     public void groupObjects(List<Node> nodesToGroup) {
         if (nodesToGroup.size() < 2) return;
 
-        // 1. Crear Padre Visual
-        Group groupParent = new Group();
-        Node anchor = nodesToGroup.get(0);
-        double anchorX = anchor.getTranslateX();
-        double anchorY = anchor.getTranslateY();
-        double anchorZ = anchor.getTranslateZ();
+        // --- PASO 1: CALCULAR EL CENTRO REAL (CENTROIDE) ---
+        // Esto evita que el grupo gire raro o que el tercer objeto se sienta "pesado"
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, minZ = Double.MAX_VALUE;
+        double maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE, maxZ = -Double.MAX_VALUE;
 
-        groupParent.setTranslateX(anchorX);
-        groupParent.setTranslateY(anchorY);
-        groupParent.setTranslateZ(anchorZ);
-        groupParent.setUserData(RobotManager.ShapeType.BOX);
+        // Calculamos la caja que envuelve a todos los objetos
+        for (Node n : nodesToGroup) {
+            double x = n.getTranslateX();
+            double y = n.getTranslateY();
+            double z = n.getTranslateZ();
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+        }
+
+        // El centro del grupo será el centro de esa caja envolvente
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        double centerZ = (minZ + maxZ) / 2.0;
+
+        // --- PASO 2: CREAR PADRE VISUAL EN EL CENTRO ---
+        Group groupParent = new Group();
+        groupParent.setTranslateX(centerX);
+        groupParent.setTranslateY(centerY);
+        groupParent.setTranslateZ(centerZ);
+
+        // ¡TRUCO! Marcamos esto como "COMPOUND" (Compuesto) para que el Editor sepa qué hacer
+        // (Aunque usaremos un truco en el editor para no cambiar el Enum todavía)
+        groupParent.setUserData("GRUPO");
 
         worldGroup.getChildren().add(groupParent);
 
-        // 2. Calcular Física Compuesta
+        // --- PASO 3: MUDANZA FÍSICA Y VISUAL ---
         CompoundShape compoundShape = new CompoundShape();
         float totalMass = 0;
         List<RigidBody> bodiesToRemove = new ArrayList<>();
@@ -56,12 +73,13 @@ public class RobotGrouper {
             RigidBody rb = physics.getBodyFromGraphic(child);
             if (rb == null) continue;
 
-            // Física Relativa
+            // A. Física Relativa al NUEVO CENTRO
             Transform childTrans = new Transform();
             rb.getWorldTransform(childTrans);
+
             Transform parentTrans = new Transform();
             parentTrans.setIdentity();
-            parentTrans.origin.set((float)anchorX, (float)anchorY, (float)anchorZ);
+            parentTrans.origin.set((float)centerX, (float)centerY, (float)centerZ);
 
             Transform offset = new Transform();
             offset.inverse(parentTrans);
@@ -71,81 +89,72 @@ public class RobotGrouper {
             if (rb.getInvMass() != 0) totalMass += (1.0f / rb.getInvMass());
             bodiesToRemove.add(rb);
 
-            // Visual Relativa (Mudanza)
-            // Primero quitamos del registro para limpiar gizmos viejos
+            // B. Visual Relativa
             registry.unregister(rb, child);
+            child.setUserData(null); // Quitar identidad para que seleccionemos el grupo
 
-            // Luego mudanza visual
             worldGroup.getChildren().remove(child);
             groupParent.getChildren().add(child);
 
-            // Ajuste fino de posición local
-            child.setTranslateX(childTrans.origin.x - anchorX);
-            child.setTranslateY(childTrans.origin.y - anchorY);
-            child.setTranslateZ(childTrans.origin.z - anchorZ);
+            // Ajuste: Posición actual MENOS el nuevo centro
+            child.setTranslateX(childTrans.origin.x - centerX);
+            child.setTranslateY(childTrans.origin.y - centerY);
+            child.setTranslateZ(childTrans.origin.z - centerZ);
         }
 
-        // 3. Crear Cuerpo Nuevo
+        // 4. Finalizar
         RigidBody newBody = physics.addCompoundBody(groupParent, totalMass, compoundShape);
-
-        // 4. Crear Gizmo Nuevo
         TransformGizmo newGizmo = new TransformGizmo(groupParent, worldRef);
         worldGroup.getChildren().add(newGizmo);
-
-        // 5. Registrar Padre
         registry.register(newBody, newGizmo, null);
 
-        // 6. Limpiar física vieja del motor
+        // 5. Limpiar viejos
         for (RigidBody b : bodiesToRemove) physics.removeBody(b);
 
-        System.out.println("Grupo creado con " + nodesToGroup.size() + " elementos.");
+        System.out.println("Grupo creado con centro equilibrado en: " + centerX + ", " + centerY + ", " + centerZ);
     }
 
     // --- DESAGRUPAR (UNGROUP) ---
     public void ungroupObject(Node groupNode, RigidBody groupBody) {
         if (!(groupNode instanceof Group) || !(groupBody.getCollisionShape() instanceof CompoundShape)) {
-            System.out.println("No es un grupo válido para desagrupar.");
             return;
         }
 
         Group parentGroup = (Group) groupNode;
         List<Node> children = new ArrayList<>(parentGroup.getChildren());
 
-        // 1. Limpiar Padre (Física y Visual)
+        // 1. Limpiar Padre
         registry.unregister(groupBody, parentGroup);
         physics.removeBody(groupBody);
         worldGroup.getChildren().remove(parentGroup);
 
         // 2. Liberar Hijos
         for (Node child : children) {
-            if (child instanceof Box) continue; // Ignorar debug boxes internas si las hubiera
+            if (child instanceof Box && ((Box)child).getMaterial() == null) continue; // Ignorar artefactos
 
             // A. VISUAL: Regresar al mundo
             parentGroup.getChildren().remove(child);
             worldGroup.getChildren().add(child);
 
-            // Restaurar posición mundial absoluta
-            // (Sumamos la posición del padre + la local del hijo)
+            // Restaurar posición mundial
             child.setTranslateX(parentGroup.getTranslateX() + child.getTranslateX());
             child.setTranslateY(parentGroup.getTranslateY() + child.getTranslateY());
             child.setTranslateZ(parentGroup.getTranslateZ() + child.getTranslateZ());
 
-            // B. FÍSICA: Recrear cuerpo individual
-            // Nota: Aquí simplificamos creando una caja por defecto.
-            // Para ser exactos, deberíamos guardar el tipo original en el UserData.
-            RigidBody newBody = physics.addBoxBody(child, 10f, 5,5,5);
+            // B. ¡CORRECCIÓN CLAVE! Devolverles la identidad.
+            // Al desagrupar, vuelven a ser objetos seleccionables.
+            // (Por simplicidad asumimos BOX, idealmente guardarías el tipo original en un mapa temporal)
+            child.setUserData(RobotManager.ShapeType.BOX);
 
-            // C. GIZMO Y REGISTRO (Aquí estaba el error)
-            // Verificamos que sea un Grupo antes de crear el Gizmo
-            if (child instanceof Group) {
-                // CORRECCIÓN: Casteamos (Group) child
-                TransformGizmo gizmo = new TransformGizmo((Group) child, worldRef);
-                worldGroup.getChildren().add(gizmo);
-                registry.register(newBody, gizmo, null);
-            } else {
-                // Si por alguna razón es una forma suelta (raro en tu arquitectura), registramos sin gizmo o lo envolvemos
-                registry.register(newBody, null, null);
-            }
+            // C. FÍSICA: Recrear cuerpo individual
+            RigidBody newBody = physics.addBoxBody(child, 10f, 5,5,5);
+            // Nota: Aquí se pierde la forma original (esfera/cilindro) al desagrupar porque PhysicsEngine.addBoxBody fuerza una caja.
+            // Para arreglar esto 100% necesitarías guardar metadata del tipo en cada hijo antes de borrar el UserData.
+
+            // D. GIZMO Y REGISTRO
+            TransformGizmo gizmo = new TransformGizmo((Group)child, worldRef); // Asumimos que los hijos eran Groups (PrimitiveFactory crea Groups)
+            worldGroup.getChildren().add(gizmo);
+            registry.register(newBody, gizmo, null);
         }
         System.out.println("Grupo desagrupado.");
     }

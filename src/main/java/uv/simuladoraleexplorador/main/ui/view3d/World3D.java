@@ -70,17 +70,25 @@ public class World3D {
     }
 
     private void buildEnvironment() {
-        // Creamos el suelo y las luces
+        // 1. Crear el suelo (La configuración del material va dentro del método createWorkplane)
         Group workplane = createWorkplane(1000);
         worldGroup.getChildren().add(workplane);
 
-        javafx.scene.AmbientLight ambientLight = new javafx.scene.AmbientLight(Color.rgb(80, 80, 80));
+        // 2. Luz Ambiental (Relleno base para que no se vea todo negro en las sombras)
+        javafx.scene.AmbientLight ambientLight = new javafx.scene.AmbientLight(Color.rgb(40, 40, 40));
         root3D.getChildren().add(ambientLight);
 
+        // 3. Luz Principal (Sol/Foco)
+        // La ponemos muy arriba y desplazada para crear contraste en las caras de los cubos
         javafx.scene.PointLight pointLight = new javafx.scene.PointLight(Color.WHITE);
         pointLight.setTranslateX(200);
-        pointLight.setTranslateY(-300);
+        pointLight.setTranslateY(-500); // Negativo es ARRIBA en JavaFX 3D
         pointLight.setTranslateZ(-200);
+
+        // Ajustes para que la luz "viaje" lejos y no se apague a los 2 metros
+        pointLight.setConstantAttenuation(1.0);
+        pointLight.setMaxRange(2000);
+
         root3D.getChildren().add(pointLight);
     }
 
@@ -166,34 +174,6 @@ public class World3D {
         pause();
     }
 
-    private Group createWorkplane(double size) {
-        Group planeGroup = new Group();
-
-        // 1. La base sólida
-        Box base = new Box(size, 1.0, size);
-        PhongMaterial baseMat = new PhongMaterial(Color.web("#e3f2fd"));
-        baseMat.setSpecularColor(Color.WHITE);
-        base.setMaterial(baseMat);
-        base.setTranslateY(0.5);
-
-        // 2. Líneas de Grid
-        PhongMaterial gridMat = new PhongMaterial(Color.web("#90caf9"));
-        double thickness = 0.5;
-
-        for (double i = -size/2; i <= size/2; i += 50) {
-            Box lineX = new Box(thickness, thickness, size);
-            lineX.setMaterial(gridMat);
-            lineX.setTranslateX(i);
-
-            Box lineZ = new Box(size, thickness, thickness);
-            lineZ.setMaterial(gridMat);
-            lineZ.setTranslateZ(i);
-
-            planeGroup.getChildren().addAll(lineX, lineZ);
-        }
-        planeGroup.getChildren().add(base);
-        return planeGroup;
-    }
     public RobotManager getRobotManager() {
         return robotManager;
     }
@@ -201,4 +181,48 @@ public class World3D {
         return rotateY.getAngle();
     }
 
+    private Group createWorkplane(double size) {
+        Group planeGroup = new Group();
+
+        // A. La base sólida (El suelo)
+        double floorThickness = 1.0;
+        Box base = new Box(size, floorThickness, size);
+
+        PhongMaterial baseMat = new PhongMaterial(Color.web("#2b2b2b"));
+        baseMat.setSpecularColor(Color.rgb(10, 10, 10));
+        base.setMaterial(baseMat);
+
+        // CORRECCIÓN 1: SUELO ABAJO
+        // En JavaFX 3D, +Y es Abajo.
+        // Ponemos el centro en +0.5 para que la caja ocupe de Y=0.0 a Y=1.0.
+        // Así la superficie queda exacta en 0.0.
+        base.setTranslateY(floorThickness / 2.0);
+
+        // B. Las líneas de la rejilla (Grid)
+        PhongMaterial gridMat = new PhongMaterial(Color.web("#555555"));
+        double lineThickness = 0.3;
+
+        for (double i = -size / 2; i <= size / 2; i += 50) {
+            Box lineX = new Box(lineThickness, lineThickness, size);
+            lineX.setMaterial(gridMat);
+            lineX.setTranslateX(i);
+
+            // CORRECCIÓN 2: REJILLA ARRIBA
+            // Usamos negativo (-0.02) para subirla un pelito sobre el 0.0
+            // Así se dibuja ENCIMA del suelo negro y no parpadea.
+            lineX.setTranslateY(-0.02);
+
+            Box lineZ = new Box(size, lineThickness, lineThickness);
+            lineZ.setMaterial(gridMat);
+            lineZ.setTranslateZ(i);
+
+            // Misma corrección aquí
+            lineZ.setTranslateY(-0.02);
+
+            planeGroup.getChildren().addAll(lineX, lineZ);
+        }
+
+        planeGroup.getChildren().add(base);
+        return planeGroup;
+    }
 }
