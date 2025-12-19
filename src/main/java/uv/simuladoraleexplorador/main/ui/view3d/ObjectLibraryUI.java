@@ -5,12 +5,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.VBox;
+import uv.simuladoraleexplorador.main.model.components.ElectronicComponent;
 
 public class ObjectLibraryUI {
 
     private final RobotManager robotManager;
     private final VBox container;
-
+    private final javafx.scene.control.ListView<ElectronicComponent> componentsList = new javafx.scene.control.ListView<>();
     public ObjectLibraryUI(RobotManager robotManager) {
         this.robotManager = robotManager;
         this.container = new VBox(10);
@@ -38,8 +39,21 @@ public class ObjectLibraryUI {
         Button btnRamp = createButton("Rampa", () -> {
             robotManager.spawnPrimitive(PrimitiveFactory.createRamp(15), RobotManager.ShapeType.RAMP, 15, 15);
         });
+        Label lblComp = new Label("Mis Componentes");
+        lblComp.setStyle("-fx-text-fill: #4ade80; -fx-font-weight: bold; -fx-padding: 10 0 5 0;");
+
+        Button btnNewComp = new Button("+ Crear Nuevo Componente");
+        btnNewComp.setMaxWidth(Double.MAX_VALUE);
+        btnNewComp.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-cursor: hand;");
+
+        btnNewComp.setOnAction(e -> handleNewComponent());
+
+        // Configuramos la lista para que se vea bien
+        componentsList.setPrefHeight(150);
+        componentsList.setStyle("-fx-background-color: #333;");
 
         container.getChildren().addAll(title, btnCube, btnSphere, btnCylinder, btnRamp);
+        container.getChildren().addAll(lblComp, btnNewComp, componentsList);
     }
 
     private Button createButton(String text, Runnable action) {
@@ -55,4 +69,15 @@ public class ObjectLibraryUI {
         pane.setExpanded(true);
         return pane;
     }
-}
+    private void handleNewComponent() {
+        ComponentCreationDialog dialog = new ComponentCreationDialog();
+        java.util.Optional<ElectronicComponent> result = dialog.showAndWait();
+
+        result.ifPresent(component -> {
+            System.out.println("Nuevo componente creado: " + component.toString());
+            System.out.println("Specs: " + component.getSpecs());
+
+            // Agregamos a la lista visual (Simulando la BD)
+            componentsList.getItems().add(component);
+        });
+    }}

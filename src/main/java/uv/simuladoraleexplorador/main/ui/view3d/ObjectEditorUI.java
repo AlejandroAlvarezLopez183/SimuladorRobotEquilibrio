@@ -8,11 +8,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;
-import javafx.scene.shape.Shape3D;
 import javafx.scene.shape.Sphere;
 import javafx.scene.Group;
 import com.bulletphysics.dynamics.RigidBody;
@@ -21,19 +18,15 @@ import uv.simuladoraleexplorador.main.model.physics.PhysicsEngine;
 public class ObjectEditorUI {
 
     private final VBox container;
-    private Node currentSelectionBox = null;
     private final PhysicsEngine physics;
-    private Slider sldWidth, sldHeight, sldDepth;
     public Node getCurrentNode() { return currentNode; }
     public RigidBody getCurrentBody() { return currentBody; }
-    private Box selectionBoxIndicator = null;
+    private final SelectionVisualizer visualizer = new SelectionVisualizer();
     // Estado actual
     private Node currentNode;
     private RigidBody currentBody;
     private RobotManager.ShapeType currentType;
     private final ObjectProperty<Node> selectedNodeProperty = new SimpleObjectProperty<>(null);
-    private PhongMaterial lastMaterial;
-    private Shape3D lastShape;
 
     public ObjectEditorUI(PhysicsEngine physics) {
         this.physics = physics;
@@ -54,30 +47,6 @@ public class ObjectEditorUI {
 
     public ObjectProperty<Node> selectedNodeProperty() {
         return selectedNodeProperty;
-    }
-    private void applySelectionEffect(Node node) {
-        // 1. Limpiar la caja anterior si existe
-        removeSelectionEffect();
-
-        if (node instanceof Group) {
-            Group group = (Group) node;
-
-            // 2. Calcular el tamaño del objeto seleccionado
-            javafx.geometry.Bounds b = group.getBoundsInLocal();
-
-            // 3. Crear una caja ligeramente más grande
-            double padding = 0.2;
-            Box wireBox = new Box(b.getWidth() + padding, b.getHeight() + padding, b.getDepth() + padding);
-
-            // 4. Estilo "Wireframe" (Solo líneas)
-            wireBox.setDrawMode(javafx.scene.shape.DrawMode.LINE);
-            wireBox.setMaterial(new PhongMaterial(Color.CYAN));
-            wireBox.setMouseTransparent(true); // ¡Importante! Para que los clics la atraviesen
-
-            // 5. Agregarla al grupo del objeto
-            group.getChildren().add(wireBox);
-            currentSelectionBox = wireBox;
-        }
     }
 
     private void refreshUI() {
@@ -220,20 +189,6 @@ public class ObjectEditorUI {
         container.getChildren().add(lbl);
     }
 
-    // Un método auxiliar para no repetir código y mantener todo sincronizado
-    private void updatePhysicsAndVisuals(Node node, RigidBody body) {
-        // 1. Actualizar Física
-        physics.updateBodyScale(body, (float)node.getScaleX(), (float)node.getScaleY(), (float)node.getScaleZ());
-
-        // 2. "Planchar" al suelo si por error flotante decimal quedó un poco abajo
-        preventFloorPenetration();
-
-        // 3. Actualizar la posición física basada en la nueva posición visual corregida
-        physics.updatePhysicsFromGraphicPosition(node);
-
-        // 4. ¡IMPORTANTE! Redibujar la caja azul para que se ajuste al nuevo tamaño
-        updateSelectionBox();
-    }
     // --- UTILIDADES ---
 
     private void addSlider(String name, double min, double max, double current, java.util.function.DoubleConsumer action) {
@@ -265,25 +220,8 @@ public class ObjectEditorUI {
         // Las cajas de debug son transparentes al mouse o DrawMode.LINE
         return !box.isMouseTransparent();
     }
-    private void restorePreviousEffect() {
-        // Método renombrado internamente a removeSelectionEffect para claridad,
-        // pero puedes mantener el nombre si lo llamas desde otros lados.
-        removeSelectionEffect();
-    }
-
-    private void removeSelectionEffect() {
-        if (currentSelectionBox != null) {
-            Group parent = (Group) currentSelectionBox.getParent();
-            if (parent != null) {
-                parent.getChildren().remove(currentSelectionBox);
-            }
-            currentSelectionBox = null;
-        }
-    }
-
-    // Y en setSelectedObject, asegúrate de llamar a removeSelectionEffect() al inicio
     public void setSelectedObject(Node node, RigidBody body, RobotManager.ShapeType type) {
-        removeSelectionEffect(); // <--- LIMPIEZA PRIMERO
+        visualizer.detach(); // Limpiar anterior
 
         this.currentNode = node;
         this.currentBody = body;
@@ -291,16 +229,9 @@ public class ObjectEditorUI {
         selectedNodeProperty.set(node);
 
         if (node != null) {
-            applySelectionEffect(node);
+            visualizer.attach(node); // Poner nuevo
         }
         refreshUI();
-    }
-
-    
-    private void updateSelectionBox() {
-        if (currentNode != null) {
-            applySelectionEffect(currentNode);
-        }
     }
     private void preventFloorPenetration() {
         if (currentNode == null) return;
@@ -313,5 +244,12 @@ public class ObjectEditorUI {
             // Subimos el objeto
             currentNode.setTranslateY(currentNode.getTranslateY() - penetration);
         }
+    }
+    private void updatePhysicsAndVisuals(Node node, RigidBody body) {
+        physics.updateBodyScale(body, (float)node.getScaleX(), (float)node.getScaleY(), (float)node.getScaleZ());
+        preventFloorPenetration();
+        physics.updatePhysicsFromGraphicPosition(node);
+
+        visualizer.update(node); // ¡Mucho más legible!
     }
 }
