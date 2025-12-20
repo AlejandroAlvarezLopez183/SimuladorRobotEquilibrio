@@ -64,7 +64,7 @@
                         <Button mnemonicParsing="false" onAction="#handleResetSim" text="Resetear Posición" />
 
                         <Button fx:id="btnDelete" mnemonicParsing="false" onAction="#handleDeleteSelected"
-                                prefWidth="200.0" text="ELIMINAR"
+                                prefWidth="100.0" text="ELIMINAR"
                                 style="-fx-base: #722; -fx-text-fill: white; -fx-font-weight: bold;">
                         </Button>
 
@@ -77,6 +77,12 @@
                                       text="Ver Límites" onAction="#handleToggleDebug" />
 
                         <Button text="UNIR (A+B)" onAction="#handleGroupObjects" style="-fx-base: #4a4;" />
+
+                        <Separator orientation="VERTICAL" />
+                        <Button text="💻 Programar"
+                                onAction="#handleOpenCodeEditor"
+                                style="-fx-base: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" />
+
                     </items>
                 </ToolBar>
             </children>

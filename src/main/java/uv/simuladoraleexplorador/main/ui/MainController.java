@@ -1,5 +1,6 @@
 package uv.simuladoraleexplorador.main.ui;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -12,10 +13,7 @@ import javafx.stage.Stage;
 
 // Imports de tu proyecto
 import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
-import uv.simuladoraleexplorador.main.ui.view3d.ObjectLibraryUI;
-import uv.simuladoraleexplorador.main.ui.view3d.World3D;
-import uv.simuladoraleexplorador.main.ui.view3d.ObjectEditorUI;
-import uv.simuladoraleexplorador.main.ui.view3d.SceneInteractionHandler; // <--- TU NUEVA CLASE
+import uv.simuladoraleexplorador.main.ui.view3d.*;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
 import uv.simuladoraleexplorador.main.model.physics.RigidBodyFactory; // Opcional si usas factory directo
 
@@ -298,5 +296,13 @@ public class MainController {
         if (world3D != null) {
             world3D.getRobotManager().setDebugVisible(btnDebug.isSelected());
         }
+    }
+    @FXML
+    public void handleOpenCodeEditor(ActionEvent event) {
+        // Creamos la instancia de la ventana
+        CodeEditorUI editor = new CodeEditorUI();
+
+        // La mostramos en modo no-modal (permite usar el simulador mientras programas)
+        editor.show();
     }
 }
