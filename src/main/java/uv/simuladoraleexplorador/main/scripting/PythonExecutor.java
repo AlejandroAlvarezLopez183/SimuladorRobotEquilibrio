@@ -49,6 +49,13 @@ public class PythonExecutor {
     }
 
     public void close() {
-        if (context != null) context.close();
+        if (context != null) {
+            try {
+                // El 'true' significa cancelIfExecuting (Forzar cierre aunque esté corriendo)
+                context.close(true);
+            } catch (Exception e) {
+                System.err.println("Error cerrando Python: " + e.getMessage());
+            }
+        }
     }
 }

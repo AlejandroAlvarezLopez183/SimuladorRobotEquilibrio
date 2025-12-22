@@ -1,5 +1,7 @@
 package uv.simuladoraleexplorador.main.ui.view3d;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
@@ -8,8 +10,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser; // Importante para abrir archivos
 import uv.simuladoraleexplorador.main.model.components.ComponentType;
 import uv.simuladoraleexplorador.main.model.components.ElectronicComponent;
-
+import uv.simuladoraleexplorador.main.model.components.data.MicrocontrollerData; // La clase de datos que hicimos antes
 import java.io.File;
+import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -127,28 +130,88 @@ public class ComponentCreationDialog extends Dialog<ElectronicComponent> {
         String name = txtName.getText();
         ComponentType type = cmbType.getValue();
 
-        if (name.isEmpty() || type == null) return null;
+        if (name.isEmpty() || type == null) {
+            new Alert(Alert.AlertType.WARNING, "Faltan datos obligatorios").show();
+            return null;
+        }
 
         ElectronicComponent comp = new ElectronicComponent(name, type);
 
-        // 1. GUARDAR MASA
+        // 1. MASA
         try {
             double m = Double.parseDouble(txtMass.getText());
             comp.setMass(m);
         } catch (NumberFormatException e) {
-            comp.setMass(0.1); // Si escriben letras, ponemos 100g por seguridad
+            comp.setMass(0.1);
         }
 
-        // 2. Guardar Ruta
+        // 2. RUTA 3D
         if (!txtModelPath.getText().isEmpty()) {
             comp.setModelPath(txtModelPath.getText());
         }
 
-        // 3. Guardar Specs
+        // 3. SPECS GENERALES
         for (Map.Entry<String, TextField> entry : dynamicFields.entrySet()) {
             comp.setSpec(entry.getKey(), entry.getValue().getText());
         }
 
+        // --- LA INTEGRACIÓN NUEVA ---
+        // Si el usuario eligió MICROCONTROLLER, generamos el JSON aquí mismo
+        if (type == ComponentType.MICROCONTROLLER) {
+            boolean exito = saveMicrocontrollerJSON(comp);
+            if (!exito) return null; // Si canceló el guardado, no cerramos el diálogo
+        }
+
         return comp;
     }
+
+    private boolean saveMicrocontrollerJSON(ElectronicComponent comp) {
+        try {
+            // 1. Recopilar datos (Igual que antes)
+            double voltaje = parseDoubleSafe(dynamicFields.get("Voltaje Op (V)").getText(), 5.0);
+            int digPins = parseIntSafe(dynamicFields.get("Pines Digitales").getText(), 14);
+            int anaPins = parseIntSafe(dynamicFields.get("Pines Analogicos").getText(), 6);
+
+            MicrocontrollerData data = new MicrocontrollerData();
+            data.name = comp.getName();
+            data.id = comp.getName().toLowerCase().replace(" ", "_"); // ID seguro
+            data.modelPath = comp.getModelPath();
+            data.operatingVoltage = voltaje;
+            data.totalDigitalPins = digPins;
+            data.totalAnalogPins = anaPins;
+
+            // 2. Definir la CARPETA POR DEFECTO
+            // Se creará una carpeta llamada "custom_components" en la raíz de tu proyecto
+            File folder = new File("custom_components");
+            if (!folder.exists()) {
+                folder.mkdirs(); // Si no existe, la creamos
+            }
+
+            // 3. Crear el archivo directamente sin preguntar al usuario
+            File dest = new File(folder, data.id + ".json");
+
+            // 4. Guardar JSON
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            try (FileWriter writer = new FileWriter(dest)) {
+                writer.write(gson.toJson(data));
+                // Opcional: Avisar en consola
+                System.out.println(">> Configuración guardada automáticamente en: " + dest.getPath());
+                return true;
+            }
+
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, "Error guardando configuración: " + e.getMessage()).show();
+        }
+        return false;
+    }
+
+    // Helpers para evitar errores si el usuario deja campos vacíos o escribe letras
+    private double parseDoubleSafe(String val, double def) {
+        try { return Double.parseDouble(val); } catch (Exception e) { return def; }
+    }
+
+    private int parseIntSafe(String val, int def) {
+        try { return Integer.parseInt(val); } catch (Exception e) { return def; }
+    }
+
 }

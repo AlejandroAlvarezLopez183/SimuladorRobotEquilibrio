@@ -130,17 +130,47 @@ public class ObjectLibraryUI {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Eliminar Componente");
         alert.setHeaderText("¿Estás seguro de eliminar '" + component.getName() + "'?");
-        alert.setContentText("Esta acción no se puede deshacer.");
+        alert.setContentText("Se eliminará el registro y su archivo de configuración JSON (si existe).");
+
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                // 1. Borrar de la "Base de Datos" (Disco)
+                // 1. Borrar de la "Base de Datos" principal (Tu lógica existente)
                 uv.simuladoraleexplorador.main.utils.DataManager.deleteComponent(component);
 
-                // 2. Borrar de la Lista Visual (UI)
+                // 2. NUEVO: Borrar el archivo JSON de configuración específico (Limpieza profunda)
+                borrarArchivoJsonAsociado(component);
+
+                // 3. Borrar de la Lista Visual (UI)
                 componentsList.getItems().remove(component);
 
-                System.out.println("Componente eliminado: " + component.getName());
+                System.out.println(">> Componente eliminado completamente: " + component.getName());
             }
         });
+    }
+    // Método helper para limpiar los archivos .json que creamos con el ComponentCreationDialog
+    private void borrarArchivoJsonAsociado(ElectronicComponent comp) {
+        // Seguro para no borrar otros componentes
+        if (comp.getType() != uv.simuladoraleexplorador.main.model.components.ComponentType.MICROCONTROLLER) {
+            return;
+        }
+
+        try {
+            String idArchivo = comp.getName().toLowerCase().replace(" ", "_") + ".json";
+
+            // --- CAMBIO CLAVE: Buscar en la carpeta "custom_components" ---
+            java.io.File folder = new java.io.File("custom_components");
+            java.io.File archivoJson = new java.io.File(folder, idArchivo);
+
+            if (archivoJson.exists()) {
+                boolean borrado = archivoJson.delete();
+                if (borrado) {
+                    System.out.println("   [Sistema] Configuración eliminada de: custom_components/" + idArchivo);
+                }
+            } else {
+                System.out.println("   (Nota: No se encontró archivo JSON en " + archivoJson.getPath() + ")");
+            }
+        } catch (Exception e) {
+            System.err.println("Error limpiando JSON: " + e.getMessage());
+        }
     }
 }

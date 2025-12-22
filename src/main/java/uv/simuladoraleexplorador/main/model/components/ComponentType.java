@@ -5,8 +5,13 @@ public enum ComponentType {
     DC_MOTOR("Motor DC", new String[]{"Voltaje (V)", "RPM Máx", "Torque (kg/cm)"}),
     SERVO_MOTOR("Servomotor", new String[]{"Voltaje (V)", "Rango (Grados)", "Velocidad (sec/60°)"}),
     ULTRASONIC_SENSOR("Sensor Ultrasónico", new String[]{"Voltaje (V)", "Rango Máx (cm)", "Precisión (cm)"}),
-    RASPBERRY_PI("Microcontrolador", new String[]{"Voltaje (V)", "Pines Digitales", "RAM (MB)"}),
-    LED("Luz LED", new String[]{"Voltaje (V)", "Color (Hex)", "Consumo (mA)"});
+    RASPBERRY_PI("Raspberry Pi", new String[]{"Voltaje (V)", "Pines Digitales", "RAM (MB)"}), // Cambié la etiqueta para no confundir
+
+    // AQUÍ ESTABA EL ERROR: Cambié el ; por una ,
+    LED("Luz LED", new String[]{"Voltaje (V)", "Color (Hex)", "Consumo (mA)"}),
+
+    // Ahora sí agregamos el nuevo al final y cerramos con ;
+    MICROCONTROLLER("Microcontrolador Genérico", new String[]{"Voltaje Op (V)", "Pines Digitales", "Pines Analogicos"});
 
     private final String label;
     private final String[] properties;
