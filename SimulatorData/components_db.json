@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "name": "ard",
+    "type": "MICROCONTROLLER",
+    "modelPath": "SimulatorData/models/1766618516817_tinker.obj",
+    "mass": 7.0,
+    "isPowered": false,
+    "currentSignalLevel": 0,
+    "specs": {
+      "Voltaje Op (V)": "5",
+      "Pines Digitales": "13",
+      "Pines Analogicos": "4"
+    }
+  },
+  {
+    "name": "arduino2",
+    "type": "MICROCONTROLLER",
+    "modelPath": "SimulatorData/models/1766709362207_tinker.obj",
+    "mass": 13.0,
+    "isPowered": false,
+    "currentSignalLevel": 0,
+    "specs": {
+      "Voltaje Op (V)": "2",
+      "Pines Digitales": "12",
+      "Pines Analogicos": "12"
+    }
+  },
+  {
+    "name": "motor",
+    "type": "DC_MOTOR",
+    "modelPath": "SimulatorData/models/1766709381742_tinker.obj",
+    "mass": 12.0,
+    "isPowered": false,
+    "currentSignalLevel": 0,
+    "specs": {
+      "Torque (kg/cm)": "12",
+      "Voltaje (V)": "12",
+      "RPM Máx": "12"
+    }
+  }
+]

@@ -82,6 +82,9 @@
                         <Button text="💻 Programar"
                                 onAction="#handleOpenCodeEditor"
                                 style="-fx-base: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" />
+                        <Button text="🔌 Conexiones"
+                                onAction="#handleOpenWiring"
+                                style="-fx-base: #FF9800; -fx-text-fill: white; -fx-font-weight: bold;" />
 
                     </items>
                 </ToolBar>

@@ -1,0 +1,12 @@
+{
+  "id": "ard",
+  "name": "ard",
+  "modelPath": "/home/alejandro/Descargas/casis_Prueba1 (1)/tinker.obj",
+  "operatingVoltage": 5.0,
+  "maxInputVoltage": 0.0,
+  "clockSpeed": 0.0,
+  "totalDigitalPins": 13,
+  "totalAnalogPins": 4,
+  "hasPWM": false,
+  "specialPins": {}
+}

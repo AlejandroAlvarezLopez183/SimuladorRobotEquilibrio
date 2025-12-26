@@ -16,6 +16,7 @@ import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
 import uv.simuladoraleexplorador.main.ui.view3d.*;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
 import uv.simuladoraleexplorador.main.model.physics.RigidBodyFactory; // Opcional si usas factory directo
+import uv.simuladoraleexplorador.main.ui.view3d.WiringUI;
 
 // Imports JBullet / Matemáticas
 import com.bulletphysics.dynamics.RigidBody;
@@ -304,5 +305,20 @@ public class MainController {
 
         // La mostramos en modo no-modal (permite usar el simulador mientras programas)
         editor.show();
+    }
+    @FXML
+    private void handleOpenWiring(javafx.event.ActionEvent event) {
+        // VERIFICACIÓN CORRECTA: Checamos si world3D existe
+        if (this.world3D == null || this.world3D.getRobotManager() == null) {
+            System.err.println("Error: El mundo 3D o RobotManager no están listos.");
+            return;
+        }
+
+        // CORRECCIÓN: Obtenemos el manager desde world3D
+        RobotManager manager = this.world3D.getRobotManager();
+
+        // Creamos y mostramos la ventana usando la referencia correcta
+        WiringUI wiringWindow = new WiringUI(manager);
+        wiringWindow.show();
     }
 }
