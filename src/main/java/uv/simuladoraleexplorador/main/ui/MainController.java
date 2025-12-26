@@ -56,7 +56,7 @@ public class MainController {
 
     // ¡LA NUEVA CLASE QUE MANEJA EL MOUSE!
     private SceneInteractionHandler interactionHandler;
-
+    private WiringHandler wiringHandler;
     // Referencias temporales para importación
     private Group currentRobotModel;
     private RigidBody currentBody;
@@ -73,6 +73,17 @@ public class MainController {
 
         objectEditor = new ObjectEditorUI(world3D.getPhysicsEngine());
         inspectorContainer.getChildren().add(1, objectEditor.getView());
+
+        // A. Creamos el cerebro que detecta los clics en los pines
+        wiringHandler = new WiringHandler(world3D);
+
+        // B. Creamos la barra visual de abajo (Rayo Naranja)
+        CableToolbar cableToolbar = new CableToolbar(wiringHandler);
+
+        // C. La pegamos en la parte de abajo de tu ventana principal
+        if (contentPane.getParent() instanceof javafx.scene.layout.BorderPane) {
+            ((javafx.scene.layout.BorderPane) contentPane.getParent()).setBottom(cableToolbar);
+        }
 
         // 3. Configurar UI
         if (sliderRotX != null) sliderRotX.setValue(180);
@@ -318,7 +329,7 @@ public class MainController {
         RobotManager manager = this.world3D.getRobotManager();
 
         // Creamos y mostramos la ventana usando la referencia correcta
-        WiringUI wiringWindow = new WiringUI(manager);
+        WiringUI wiringWindow = new WiringUI(); // Constructor vacío
         wiringWindow.show();
     }
 }

@@ -45,6 +45,8 @@ public class RobotManager {
     }
 
     public RigidBody spawnPrimitive(Group model, ShapeType type, double s1, double s2) {
+        ElectronicComponent dummyComp = new ElectronicComponent("Objeto Primitivo", uv.simuladoraleexplorador.main.model.components.ComponentType.LED);
+        model.setUserData(dummyComp);
         RigidBody body = spawner.spawnPrimitive(model, type, s1, s2);
         refreshVisuals();
         return body;
