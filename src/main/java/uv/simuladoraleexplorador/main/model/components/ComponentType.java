@@ -1,17 +1,16 @@
 package uv.simuladoraleexplorador.main.model.components;
 
 public enum ComponentType {
-    // Definimos el Tipo y la lista de "Etiquetas" que pediremos en el formulario
     DC_MOTOR("Motor DC", new String[]{"Voltaje (V)", "RPM Máx", "Torque (kg/cm)"}),
     SERVO_MOTOR("Servomotor", new String[]{"Voltaje (V)", "Rango (Grados)", "Velocidad (sec/60°)"}),
     ULTRASONIC_SENSOR("Sensor Ultrasónico", new String[]{"Voltaje (V)", "Rango Máx (cm)", "Precisión (cm)"}),
-    RASPBERRY_PI("Raspberry Pi", new String[]{"Voltaje (V)", "Pines Digitales", "RAM (MB)"}), // Cambié la etiqueta para no confundir
+    RASPBERRY_PI("Raspberry Pi", new String[]{"Voltaje (V)", "Pines Digitales", "RAM (MB)"}),
 
-    // AQUÍ ESTABA EL ERROR: Cambié el ; por una ,
+    // Fíjate que aquí debe haber una COMA, no un punto y coma
     LED("Luz LED", new String[]{"Voltaje (V)", "Color (Hex)", "Consumo (mA)"}),
 
-    // Ahora sí agregamos el nuevo al final y cerramos con ;
-    MICROCONTROLLER("Microcontrolador Genérico", new String[]{"Voltaje Op (V)", "Pines Digitales", "Pines Analogicos"});
+    // Y aquí agregamos lo nuevo de la rama hardware
+    MICROCONTROLLER("Microcontrolador", new String[]{"Voltaje Op (V)", "Pines Digitales", "Pines Analogicos"});
 
     private final String label;
     private final String[] properties;

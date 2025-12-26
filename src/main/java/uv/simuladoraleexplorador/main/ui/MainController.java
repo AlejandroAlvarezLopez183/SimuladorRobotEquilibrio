@@ -16,6 +16,7 @@ import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
 import uv.simuladoraleexplorador.main.ui.view3d.*;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
 import uv.simuladoraleexplorador.main.model.physics.RigidBodyFactory; // Opcional si usas factory directo
+import uv.simuladoraleexplorador.main.ui.view3d.WiringUI;
 
 // Imports JBullet / Matemáticas
 import com.bulletphysics.dynamics.RigidBody;
@@ -55,7 +56,7 @@ public class MainController {
 
     // ¡LA NUEVA CLASE QUE MANEJA EL MOUSE!
     private SceneInteractionHandler interactionHandler;
-
+    private WiringHandler wiringHandler;
     // Referencias temporales para importación
     private Group currentRobotModel;
     private RigidBody currentBody;
@@ -72,6 +73,17 @@ public class MainController {
 
         objectEditor = new ObjectEditorUI(world3D.getPhysicsEngine());
         inspectorContainer.getChildren().add(1, objectEditor.getView());
+
+        // A. Creamos el cerebro que detecta los clics en los pines
+        wiringHandler = new WiringHandler(world3D);
+
+        // B. Creamos la barra visual de abajo (Rayo Naranja)
+        CableToolbar cableToolbar = new CableToolbar(wiringHandler);
+
+        // C. La pegamos en la parte de abajo de tu ventana principal
+        if (contentPane.getParent() instanceof javafx.scene.layout.BorderPane) {
+            ((javafx.scene.layout.BorderPane) contentPane.getParent()).setBottom(cableToolbar);
+        }
 
         // 3. Configurar UI
         if (sliderRotX != null) sliderRotX.setValue(180);
@@ -304,5 +316,20 @@ public class MainController {
 
         // La mostramos en modo no-modal (permite usar el simulador mientras programas)
         editor.show();
+    }
+    @FXML
+    private void handleOpenWiring(javafx.event.ActionEvent event) {
+        // VERIFICACIÓN CORRECTA: Checamos si world3D existe
+        if (this.world3D == null || this.world3D.getRobotManager() == null) {
+            System.err.println("Error: El mundo 3D o RobotManager no están listos.");
+            return;
+        }
+
+        // CORRECCIÓN: Obtenemos el manager desde world3D
+        RobotManager manager = this.world3D.getRobotManager();
+
+        // Creamos y mostramos la ventana usando la referencia correcta
+        WiringUI wiringWindow = new WiringUI(); // Constructor vacío
+        wiringWindow.show();
     }
 }

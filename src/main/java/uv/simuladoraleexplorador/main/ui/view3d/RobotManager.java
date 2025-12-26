@@ -9,6 +9,7 @@ import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotGrouper;
 import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotRegistry;
 import uv.simuladoraleexplorador.main.ui.view3d.robot.RobotSpawner;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
+import uv.simuladoraleexplorador.main.model.components.ComponentType;
 
 import java.io.File;
 import java.util.List;
@@ -44,6 +45,8 @@ public class RobotManager {
     }
 
     public RigidBody spawnPrimitive(Group model, ShapeType type, double s1, double s2) {
+        ElectronicComponent dummyComp = new ElectronicComponent("Objeto Primitivo", uv.simuladoraleexplorador.main.model.components.ComponentType.LED);
+        model.setUserData(dummyComp);
         RigidBody body = spawner.spawnPrimitive(model, type, s1, s2);
         refreshVisuals();
         return body;
@@ -191,5 +194,24 @@ public class RobotManager {
         Group cube = PrimitiveFactory.createCube(5);
         // Podrías cambiarle el color según el tipo (Motor=Rojo, Sensor=Azul) si quisieras
         return cube;
+    }
+
+    public java.util.List<ElectronicComponent> getAllComponents() {
+        java.util.List<ElectronicComponent> list = new java.util.ArrayList<>();
+
+        // 1. Obtenemos todos los nodos 3D (Cajas, Esferas, Robots importados)
+        // Usamos el método que ya tienes expuesto: getTrackedNodes()
+        for (Node node : getTrackedNodes()) {
+
+            // 2. Verificamos si el nodo tiene "datos de usuario" (UserData)
+            Object data = node.getUserData();
+
+            // 3. Si esos datos son un Componente Electrónico, lo agregamos a la lista
+            if (data instanceof ElectronicComponent) {
+                list.add((ElectronicComponent) data);
+            }
+        }
+
+        return list;
     }
 }

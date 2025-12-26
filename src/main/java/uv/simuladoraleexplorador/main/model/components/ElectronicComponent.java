@@ -8,6 +8,8 @@ public class ElectronicComponent {
     private ComponentType type;
     private String modelPath;
     private double mass; // <--- NUEVO CAMPO (En Kg)
+    private boolean isPowered = false;
+    private int currentSignalLevel = 0;
 
     private Map<String, String> specs = new HashMap<>();
 
@@ -34,4 +36,35 @@ public class ElectronicComponent {
 
     @Override
     public String toString() { return name; }
+
+    public void receiveSignal(String inputName, int value) {
+        System.out.println("⚡ Componente " + this.getName() + " recibió " + value + " en puerto " + inputName);
+
+        this.currentSignalLevel = value;
+
+        // Ejemplo de lógica simple
+        if (inputName.contains("ENABLE") || inputName.contains("ANODE")) {
+            if (value > 0) {
+                turnOn();
+            } else {
+                turnOff();
+            }
+        }
+    }
+
+    private void turnOn() {
+        if (!isPowered) {
+            isPowered = true;
+            System.out.println("   🟢 " + getName() + " ENCENDIDO");
+            // Aquí cambiarías el color del modelo 3D a brillante
+        }
+    }
+
+    private void turnOff() {
+        if (isPowered) {
+            isPowered = false;
+            System.out.println("   ⚪ " + getName() + " APAGADO");
+            // Aquí volverías el color a normal
+        }
+    }
 }

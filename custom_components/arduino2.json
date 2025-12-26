@@ -1,0 +1,12 @@
+{
+  "id": "arduino2",
+  "name": "arduino2",
+  "modelPath": "/home/alejandro/Descargas/copy of Table/tinker.obj",
+  "operatingVoltage": 2.0,
+  "maxInputVoltage": 0.0,
+  "clockSpeed": 0.0,
+  "totalDigitalPins": 12,
+  "totalAnalogPins": 12,
+  "hasPWM": false,
+  "specialPins": {}
+}
