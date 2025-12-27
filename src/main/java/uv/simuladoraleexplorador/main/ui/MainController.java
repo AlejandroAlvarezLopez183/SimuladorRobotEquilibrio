@@ -12,6 +12,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 // Imports de tu proyecto
+import uv.simuladoraleexplorador.main.model.components.save.SimulationState;
 import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
 import uv.simuladoraleexplorador.main.ui.view3d.*;
 import uv.simuladoraleexplorador.main.utils.ObjLoader;
@@ -20,6 +21,8 @@ import uv.simuladoraleexplorador.main.ui.view3d.WiringUI;
 
 // Imports JBullet / Matemáticas
 import com.bulletphysics.dynamics.RigidBody;
+import uv.simuladoraleexplorador.main.utils.ProjectManager;
+
 import javax.vecmath.Quat4f;
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Vector3f;
@@ -158,17 +161,32 @@ public class MainController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar Modelo Robot (.obj)");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Modelos 3D OBJ", "*.obj"));
-        File selectedFile = fileChooser.showOpenDialog(contentPane.getScene().getWindow());
+
+        java.io.File selectedFile = fileChooser.showOpenDialog(contentPane.getScene().getWindow());
 
         if (selectedFile != null) {
             handleSimPause();
             handleSwitchTo3D();
 
-            currentRobotModel = ObjLoader.loadModel(selectedFile);
-            currentRobotModel.getTransforms().add(new Rotate(90, Rotate.X_AXIS));
+            // 1. Cargar el modelo visual
+            currentRobotModel = uv.simuladoraleexplorador.main.utils.ObjLoader.loadModel(selectedFile);
+            uv.simuladoraleexplorador.main.model.components.ElectronicComponent comp =
+                    new uv.simuladoraleexplorador.main.model.components.ElectronicComponent(
+                            selectedFile.getName().replace(".obj", ""), // Nombre: "Chasis"
+                            uv.simuladoraleexplorador.main.model.components.ComponentType.MICROCONTROLLER // O un tipo "GENERICO" si creas uno
+                    );
 
+            // Guardamos la ruta para poder recargarlo después
+            comp.setModelPath(selectedFile.getAbsolutePath());
+
+            // ¡PEGAMOS LA ETIQUETA AL MODELO 3D!
+            currentRobotModel.setUserData(comp);
+
+            // 3. Registrar en el Mundo Físico
             if (world3D != null) {
                 this.currentBody = world3D.setRobotModel(currentRobotModel);
+
+                // Aseguramos propiedades iniciales
                 txtMasa.setText("10.0");
                 if (sliderDrag != null) sliderDrag.setValue(0.0);
                 world3D.pause();
@@ -332,4 +350,47 @@ public class MainController {
         WiringUI wiringWindow = new WiringUI(); // Constructor vacío
         wiringWindow.show();
     }
-}
+    @FXML
+    public void handleSaveProject() {
+        String codigoActual = "";
+
+        ProjectManager.saveProject(
+                (Stage) contentPane.getScene().getWindow(), // <--- AGREGA (Stage) AQUÍ
+                world3D.getRobotManager(),
+                codigoActual
+        );
+    }
+
+    @FXML
+    public void handleLoadProject() {
+        // 1. Cargamos el archivo del disco
+        uv.simuladoraleexplorador.main.model.components.save.SimulationState state =
+                uv.simuladoraleexplorador.main.utils.ProjectManager.loadProject((Stage) contentPane.getScene().getWindow());
+
+        if (state != null) {
+            System.out.println("📂 Archivo leído correctamente. Iniciando reconstrucción...");
+
+            // 2. Limpiamos la escena actual (Borrar todo lo viejo)
+            world3D.getRobotManager().clearScene();
+
+            // Asegúrate de que la ruta a WiringManager sea la correcta (checa si está en model.logic o model.components.logic)
+            uv.simuladoraleexplorador.main.model.components.logic.WiringManager.getInstance().clearAll();
+
+            // 3. RECONSTRUCCIÓN DE OBJETOS (¡ESTO ES LO QUE FALTABA!)
+            // Recorremos la lista de objetos guardados y le decimos al RobotManager: "¡Créalo de nuevo!"
+            if (state.objects != null) {
+                for (uv.simuladoraleexplorador.main.model.components.save.SavedObject obj : state.objects) {
+                    world3D.getRobotManager().spawnFromSave(obj);
+                }
+            }
+
+            // 4. (Opcional) Restaurar código en el editor si lo hubiera
+            if (state.cppCode != null) {
+                // Aquí podrías setear el código en tu editor si tuvieras acceso a él
+                // codeEditor.setCode(state.cppCode);
+                System.out.println("📝 Código C++ recuperado.");
+            }
+
+            System.out.println("✅ Proyecto cargado con éxito: " + state.objects.size() + " objetos.");
+        }
+    }}

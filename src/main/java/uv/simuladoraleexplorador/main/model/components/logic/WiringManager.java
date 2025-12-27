@@ -47,4 +47,9 @@ public class WiringManager {
             target.receiveSignal(wire.getTargetInputName(), value);
         }
     }
+    public void clearAll() {
+        connections.clear();
+        System.out.println("🧹 Todas las conexiones han sido eliminadas.");
+    }
+
 }

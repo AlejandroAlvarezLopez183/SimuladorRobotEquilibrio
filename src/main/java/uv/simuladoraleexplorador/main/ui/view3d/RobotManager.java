@@ -214,4 +214,75 @@ public class RobotManager {
 
         return list;
     }
+
+    public javafx.scene.Node getNodeFromComponent(ElectronicComponent comp) {
+        // Busamos en todos los nodos visuales
+        for (javafx.scene.Node node : getTrackedNodes()) {
+            // Si el nodo tiene guardado este componente en su "UserData"
+            if (node.getUserData() == comp) {
+                return node; // ¡Encontrado! Devolvemos el nodo 3D (para saber su X,Y,Z)
+            }
+        }
+        return null; // No se encontró (tal vez fue borrado)
+    }
+
+    public void spawnFromSave(uv.simuladoraleexplorador.main.model.components.save.SavedObject saved) {
+        // 1. Recuperar el archivo .obj original
+        File file = new File(saved.modelPath);
+        Group visualModel;
+
+        // Intentamos cargar el modelo 3D original
+        if (file.exists() && saved.modelPath.toLowerCase().endsWith(".obj")) {
+            try {
+                visualModel = ObjLoader.loadModel(file);
+                // IMPORTANTE: Si al importar rotas 90 grados, aquí también deberías hacerlo si es necesario
+                // visualModel.getTransforms().add(new javafx.scene.transform.Rotate(90, javafx.scene.transform.Rotate.X_AXIS));
+            } catch (Exception e) {
+                System.err.println("No se pudo cargar modelo: " + saved.modelPath);
+                visualModel = createPlaceholder(null); // Cubo de emergencia
+            }
+        } else {
+            // Si el archivo ya no existe (lo borraste o moviste), creamos un cubo
+            visualModel = createPlaceholder(null);
+        }
+
+        // 2. Recrear la identidad del componente (Nombre y Tipo)
+        uv.simuladoraleexplorador.main.model.components.ComponentType type =
+                uv.simuladoraleexplorador.main.model.components.ComponentType.valueOf(saved.type);
+
+        ElectronicComponent comp = new ElectronicComponent(saved.id, type);
+        comp.setModelPath(saved.modelPath); // Recordar dónde estaba
+
+        visualModel.setUserData(comp);
+
+        // 3. Crear el Cuerpo Físico (RigidBody)
+        // Usamos spawnImported porque ya traemos el modelo listo
+        RigidBody body = spawner.spawnImported(visualModel);
+
+        // 4. Moverlo a la posición guardada
+        if (body != null) {
+            com.bulletphysics.linearmath.Transform t = new com.bulletphysics.linearmath.Transform();
+            t.setIdentity();
+
+            // Aplicar posición (X, Y, Z)
+            t.origin.set((float)saved.posX, (float)saved.posY, (float)saved.posZ);
+
+            // (Opcional) Aplicar rotación si la guardaste
+            // Si guardaste rotX/Y/Z en grados, aquí habría que convertir a Cuaternión.
+            // Por ahora solo restauramos posición para que aparezcan.
+
+            body.setWorldTransform(t);
+
+            // Restaurar Masa y Físicas
+            physics.updateBodyProperties(body, saved.mass, 0.5f); // 0.5f es fricción default
+
+            // Forzar actualización física
+            body.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
+            body.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
+            body.activate(true);
+        }
+
+        refreshVisuals();
+        System.out.println("📦 Objeto restaurado: " + saved.id);
+    }
 }

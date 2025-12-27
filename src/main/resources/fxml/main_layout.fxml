@@ -29,6 +29,10 @@
                             <items>
                                 <MenuItem mnemonicParsing="false" text="Importar CAD (.obj)" onAction="#handleImportarModelo" />
                                 <MenuItem mnemonicParsing="false" text="Salir" />
+                                <Menu text="Archivo">
+                                    <MenuItem text="Guardar Proyecto (.uvsim)" onAction="#handleSaveProject"/>
+                                    <MenuItem text="Abrir Proyecto..." onAction="#handleLoadProject"/>
+                                </Menu>
                             </items>
                         </Menu>
                         <Menu mnemonicParsing="false" text="Simulación">
