@@ -10,7 +10,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Rotate;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
 // Imports de tu proyecto
 import uv.simuladoraleexplorador.main.model.components.save.SimulationState;
 import uv.simuladoraleexplorador.main.ui.view2d.InfiniteGrid2D;
@@ -51,7 +50,7 @@ public class MainController {
     @FXML private Slider sliderDrag;
     @FXML private Label lblAltura;
     @FXML private Slider sliderRotX;
-
+    private uv.simuladoraleexplorador.main.ui.view3d.visuals.CableRenderer cableRenderer;
     // --- LÓGICA DEL SISTEMA ---
     private InfiniteGrid2D grid2D;
     private World3D world3D;
@@ -106,6 +105,19 @@ public class MainController {
 
         // Manejador del Mouse
         interactionHandler = new SceneInteractionHandler(world3D, objectEditor, selectionRect, cmbSnap);
+
+        cableRenderer = new uv.simuladoraleexplorador.main.ui.view3d.visuals.CableRenderer(
+                world3D.getWorldGroup(), // Asegúrate que World3D tenga un getter para el Group principal
+                world3D.getRobotManager()
+        );
+        world3D.setCableRendererCallback(() -> {
+            if (cableRenderer != null) cableRenderer.updateAnimation();
+        });
+        uv.simuladoraleexplorador.main.model.components.logic.WiringManager.getInstance()
+                .setOnConnectionChanged(() -> {
+                    System.out.println("🔄 Reconstruyendo cables visuales...");
+                    cableRenderer.rebuildCables();
+                });
     }
 
     public void iniciarSistema(Stage stage) {
@@ -393,4 +405,6 @@ public class MainController {
 
             System.out.println("✅ Proyecto cargado con éxito: " + state.objects.size() + " objetos.");
         }
-    }}
+        cableRenderer.rebuildCables();
+    }
+}

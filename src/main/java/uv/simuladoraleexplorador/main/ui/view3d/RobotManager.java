@@ -196,36 +196,6 @@ public class RobotManager {
         return cube;
     }
 
-    public java.util.List<ElectronicComponent> getAllComponents() {
-        java.util.List<ElectronicComponent> list = new java.util.ArrayList<>();
-
-        // 1. Obtenemos todos los nodos 3D (Cajas, Esferas, Robots importados)
-        // Usamos el método que ya tienes expuesto: getTrackedNodes()
-        for (Node node : getTrackedNodes()) {
-
-            // 2. Verificamos si el nodo tiene "datos de usuario" (UserData)
-            Object data = node.getUserData();
-
-            // 3. Si esos datos son un Componente Electrónico, lo agregamos a la lista
-            if (data instanceof ElectronicComponent) {
-                list.add((ElectronicComponent) data);
-            }
-        }
-
-        return list;
-    }
-
-    public javafx.scene.Node getNodeFromComponent(ElectronicComponent comp) {
-        // Busamos en todos los nodos visuales
-        for (javafx.scene.Node node : getTrackedNodes()) {
-            // Si el nodo tiene guardado este componente en su "UserData"
-            if (node.getUserData() == comp) {
-                return node; // ¡Encontrado! Devolvemos el nodo 3D (para saber su X,Y,Z)
-            }
-        }
-        return null; // No se encontró (tal vez fue borrado)
-    }
-
     public void spawnFromSave(uv.simuladoraleexplorador.main.model.components.save.SavedObject saved) {
         // 1. Recuperar el archivo .obj original
         File file = new File(saved.modelPath);
@@ -284,5 +254,47 @@ public class RobotManager {
 
         refreshVisuals();
         System.out.println("📦 Objeto restaurado: " + saved.id);
+    }
+
+    public java.util.List<ElectronicComponent> getAllComponents() {
+        java.util.List<ElectronicComponent> list = new java.util.ArrayList<>();
+
+        for (Node node : getTrackedNodes()) {
+            // 1. Intento Directo: ¿El nodo wrapper tiene el componente?
+            if (node.getUserData() instanceof ElectronicComponent) {
+                list.add((ElectronicComponent) node.getUserData());
+            }
+            // 2. Intento Profundo: ¿Es un Grupo y el componente está en un hijo?
+            // (Esto pasa mucho con modelos importados .obj)
+            else if (node instanceof Group) {
+                for (Node child : ((Group) node).getChildren()) {
+                    if (child.getUserData() instanceof ElectronicComponent) {
+                        list.add((ElectronicComponent) child.getUserData());
+                        break; // Ya encontramos el alma de este robot, pasamos al siguiente
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    public javafx.scene.Node getNodeFromComponent(ElectronicComponent comp) {
+        for (javafx.scene.Node node : getTrackedNodes()) {
+            // 1. Chequeo Directo
+            if (node.getUserData() == comp) return node;
+
+            // 2. Chequeo Profundo (Hijos)
+            if (node instanceof Group) {
+                for (Node child : ((Group) node).getChildren()) {
+                    if (child.getUserData() == comp) {
+                        // ¡TRUCO IMPORTANTE!
+                        // Devolvemos el PADRE (node), no el hijo.
+                        // Porque el Padre es el que tiene la posición física en el mundo.
+                        return node;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

@@ -10,6 +10,7 @@ public class WiringManager {
 
     private static WiringManager instance;
     private List<Wire> connections = new ArrayList<>();
+    private Runnable onConnectionChangedCallback;
 
     private WiringManager() {}
 
@@ -23,11 +24,17 @@ public class WiringManager {
         // Opcional: Verificar que no exista ya algo conectado a ese pin
         connections.add(wire);
         System.out.println("🔗 Nueva conexión: " + wire);
+        if (onConnectionChangedCallback != null) {
+            onConnectionChangedCallback.run();
+        }
     }
 
     // Borrar conexión
     public void removeConnection(Wire wire) {
         connections.remove(wire);
+        if (onConnectionChangedCallback != null) {
+            onConnectionChangedCallback.run();
+        }
     }
 
     public List<Wire> getConnections() {
@@ -49,7 +56,11 @@ public class WiringManager {
     }
     public void clearAll() {
         connections.clear();
-        System.out.println("🧹 Todas las conexiones han sido eliminadas.");
+        if (onConnectionChangedCallback != null) {
+            onConnectionChangedCallback.run();
+        }
     }
-
+    public void setOnConnectionChanged(Runnable callback) {
+        this.onConnectionChangedCallback = callback;
+    }
 }

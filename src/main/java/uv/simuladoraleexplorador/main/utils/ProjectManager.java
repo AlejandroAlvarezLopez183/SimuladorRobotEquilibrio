@@ -37,14 +37,14 @@ public class ProjectManager {
             obj.type = comp.getType().name();
             obj.modelPath = comp.getModelPath();
 
-            // Necesitamos acceder al nodo gráfico para la posición
-            // (Asumimos que el componente tiene referencia a su RigidBody o Nodo visual)
-            // Aquí simplificamos: RobotManager debería darnos acceso a la posición
             Node node = robotManager.getNodeFromComponent(comp);
             if (node != null) {
-                obj.posX = node.getTranslateX();
-                obj.posY = node.getTranslateY();
-                obj.posZ = node.getTranslateZ();
+                javafx.geometry.Point3D worldPos = node.localToScene(0, 0, 0);
+
+                obj.posX = worldPos.getX();
+                obj.posY = worldPos.getY();
+                obj.posZ = worldPos.getZ();
+
                 // Guardar rotación y escala...
                 obj.mass = (float) comp.getMass();
             }

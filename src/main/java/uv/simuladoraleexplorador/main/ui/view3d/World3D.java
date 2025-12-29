@@ -33,7 +33,7 @@ public class World3D {
     private AnimationTimer simulationLoop;
     private CameraController cameraController;
     private RobotManager robotManager;
-
+    private Runnable cableUpdateCallback;
     // Transformaciones de Cámara
     private final Rotate rotateX = new Rotate(0, Rotate.X_AXIS);
     private final Rotate rotateY = new Rotate(0, Rotate.Y_AXIS);
@@ -82,7 +82,6 @@ public class World3D {
     private void startSimulationLoop() {
         simulationLoop = new AnimationTimer() {
             long lastTime = 0;
-            // Variable temporal para no crear basura en cada frame
             com.bulletphysics.linearmath.Transform tempT = new com.bulletphysics.linearmath.Transform();
 
             @Override
@@ -95,34 +94,23 @@ public class World3D {
                     // Paso 1: Simulación Física
                     physics.stepSimulation(timeStep);
 
-                    // Paso 2: Kill Floor (Optimización)
-                    // Iteramos sobre los cuerpos para ver si alguno cayó al vacío
+                    // Paso 2: Kill Floor
                     for (com.bulletphysics.dynamics.RigidBody body : physics.getPhysicsToGraphicsMap().keySet()) {
-
-                        // Obtenemos la posición física real
                         body.getMotionState().getWorldTransform(tempT);
-
-                        // Si la altura (Y) es menor a -200 (cayó muy abajo)
                         if (tempT.origin.y < -200) {
-                            // Opción A: Congelarlo para ahorrar CPU
                             body.setLinearVelocity(new javax.vecmath.Vector3f(0,0,0));
                             body.setAngularVelocity(new javax.vecmath.Vector3f(0,0,0));
                             body.forceActivationState(com.bulletphysics.dynamics.RigidBody.WANTS_DEACTIVATION);
-
-                            // Opción B (Opcional): Si prefieres resetearlo al cielo descomenta esto:
-                            /*
-                            tempT.setIdentity();
-                            tempT.origin.set(0, 50, 0); // Al cielo
-                            body.setWorldTransform(tempT);
-                            body.activate();
-                            */
                         }
                     }
                 }
 
-                // El Gizmo debe actualizarse siempre, incluso en pausa
+                // El Gizmo debe actualizarse siempre
                 if (robotManager != null) {
                     robotManager.updateAllGizmos();
+                }
+                if (cableUpdateCallback != null) {
+                    cableUpdateCallback.run();
                 }
             }
         };
@@ -158,4 +146,10 @@ public class World3D {
         return rotateY.getAngle();
     }
 
+    public void setCableRendererCallback(Runnable callback) {
+        this.cableUpdateCallback = callback;
+    }
+    public javafx.scene.Group getWorldGroup() {
+        return this.worldGroup;
+    }
 }

@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "timestamp": 1766858001939,
+  "cppCode": "",
+  "objects": [
+    {
+      "id": "arduino2",
+      "type": "MICROCONTROLLER",
+      "modelPath": "SimulatorData/models/1766709362207_tinker.obj",
+      "posX": 0.0,
+      "posY": -77.5,
+      "posZ": 0.0,
+      "rotX": 0.0,
+      "rotY": 0.0,
+      "rotZ": 0.0,
+      "scale": 0.0,
+      "mass": 13.0
+    },
+    {
+      "id": "motor",
+      "type": "DC_MOTOR",
+      "modelPath": "SimulatorData/models/1766709381742_tinker.obj",
+      "posX": 0.0,
+      "posY": -56.5,
+      "posZ": 0.0,
+      "rotX": 0.0,
+      "rotY": 0.0,
+      "rotZ": 0.0,
+      "scale": 0.0,
+      "mass": 12.0
+    }
+  ],
+  "wires": []
+}
